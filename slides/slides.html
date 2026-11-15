@@ -1,0 +1,257 @@
+<!-- Slides du talk « Contre l'AI slop : un linter Java qui apprend des revues » (Tools-in-Action, 30 min)
+     Construire : python3 <kit>/build_deck.py slides/slides.html docs/slides/index.html "Contre l'AI slop"
+     Règle : aucun chiffre de résultat avant mesure ; les emplacements sont marqués « à mesurer ».
+     Plan : 0-4 code presque juste · 4-10 guides contre capteurs · 10-22 démo · 22-27 chiffres · 27-30 à emporter -->
+
+<!-- 1. Titre (0:00) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:250px">
+    <div class="k reveal">Devoxx France 2027 · Tools-in-Action</div>
+    <h1 class="reveal" style="margin-top:40px">Contre l'AI slop :<br><em>un linter qui apprend des revues</em></h1>
+  </div>
+  <div class="readouts reveal" style="position:absolute;left:120px;bottom:130px"><div><b>11</b><span>règles</span></div><div><b>22</b><span>exemples</span></div><div><b>1</b><span>hook</span></div></div>
+  <div style="position:absolute;right:120px;bottom:140px;text-align:right" class="reveal"><h3>Mekki Amiri</h3><p class="muted" style="font-size:24px;margin:8px 0 0">Tech Lead · architecte système</p></div>
+  <aside class="notes">Bonjour. 30 minutes, du code, une démo. Je relis chaque semaine du code écrit par des agents : voici ce que j'ai arrêté de répéter.</aside>
+</section>
+
+<!-- 2. Le code presque juste (0:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Ça compile · les tests passent</div>
+    <pre class="code reveal" style="margin-top:50px">public BigDecimal apply(BigDecimal price) {
+    return price.multiply(<span class="h">new BigDecimal(0.9)</span>);
+}</pre>
+    <h3 class="reveal" style="margin-top:60px"><span class="muted">new BigDecimal(0.9) vaut</span><br><em>0.90000000000000002220446…</em></h3>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Code écrit par un agent pour une remise de 10 %. Il compile, le test arrondit, la revue le voit. Ou pas. Laisser lire la valeur.</aside>
+</section>
+
+<!-- 3. Trois remarques qui reviennent (1:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Trois remarques que j'écris trop souvent</div>
+    <ul class="steps reveal">
+      <li data-n="01">« Ce <em>@Transactional</em> sur une méthode privée ne fait rien. »</li>
+      <li data-n="02">« Le service lève une <em>ResponseStatusException</em> : le métier ne connaît pas HTTP. »</li>
+      <li data-n="03">« <em>OrderTotalCheck</em> n'a jamais tourné : Surefire ne le lance pas. »</li>
+    </ul>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Le pire : le 3. Le test était vert parce qu'il n'existait pas pour Maven. Tout est dans slopexamples du dépôt.</aside>
+</section>
+
+<!-- 4. La boucle sans fin (3:00) -->
+<section class="slide">
+  <div class="pad" style="top:260px">
+    <div class="k reveal">Le problème</div>
+    <h2 class="reveal" style="margin-top:30px">On corrige. L'agent en introduit <em>un autre</em>.</h2>
+    <p class="muted reveal" style="margin-top:50px">Et à la PR suivante, la même remarque revient.</p>
+  </div>
+  {{CHROME}}
+</section>
+
+<!-- 5. Section guides / capteurs (4:00) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:320px"><div class="k reveal">Partie 1</div><h1 class="reveal" style="margin-top:30px">Le prompt <em>suggère</em></h1></div>
+  {{CHROME}}
+</section>
+
+<!-- 6. Guides contre capteurs (4:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Böckeler · Harness engineering (2026)</div>
+    <div class="cols reveal" style="margin-top:60px">
+      <div class="panel"><h3>Guide</h3><p>Oriente l'agent <em>avant</em> qu'il agisse.</p><p class="muted">prompt · CLAUDE.md · exemples</p></div>
+      <div class="panel"><h3>Capteur</h3><p>Observe <em>après</em>, l'agent se corrige.</p><p class="muted">tests · linter · ArchUnit</p></div>
+    </div>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Birgitta Böckeler, martinfowler.com, avril 2026 : feedforward et feedback. Les deux sont utiles. Mais un guide peut être ignoré, un capteur déterministe casse à chaque fois.</aside>
+</section>
+
+<!-- 7. Letsch (6:30) -->
+<section class="slide">
+  <div class="pad" style="top:230px">
+    <div class="k reveal">Fabian Letsch · avril 2026</div>
+    <h2 class="reveal" style="margin-top:30px">« Linters […] either pass or fail.<br><em>Every time.</em> »</h2>
+    <p class="muted reveal" style="margin-top:50px">« AI does not follow its prompts 100% of the time. »</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Article « Linters: The Most Underabused Tool In The AI-Slop Era ». Son exemple est en TypeScript ; on fait la même chose en Java, avec ArchUnit. Desloppify (peteromallet) prend l'autre voie : un score global et une boucle de correction ; ici, une règle par remarque.</aside>
+</section>
+
+<!-- 8. Le ratchet (8:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Le ratchet</div>
+    <ul class="steps reveal">
+      <li data-n="01">Une remarque revient <em>deux fois</em> en revue</li>
+      <li data-n="02">L'agent écrit la règle, <em>et son test</em></li>
+      <li data-n="03">Branchée dans la boucle de l'agent <em>et</em> dans la CI</li>
+    </ul>
+    <p class="muted reveal" style="margin-top:40px">Un cliquet : une règle ajoutée ne s'enlève pas sans discussion.</p>
+  </div>
+  {{CHROME}}
+</section>
+
+<!-- 9. Section démo (10:00) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:320px"><div class="k reveal">Partie 2 · démo</div><h1 class="reveal" style="margin-top:30px">Une règle née <em>d'une erreur</em></h1></div>
+  {{CHROME}}
+  <aside class="notes">Démo live. Plan B : vidéo enregistrée. Terminal + IDE + Claude Code ouverts sur le dépôt anti-slop-ratchet, hooks désactivés au départ.</aside>
+</section>
+
+<!-- 10. L'erreur (10:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 1 / 6 · l'erreur</div>
+    <h3 class="reveal" style="margin:30px 0 40px">« Ajoute une remise de 10 % sur la commande. »</h3>
+    <pre class="code reveal"><span class="c">// écrit par l'agent, revu par moi</span>
+return total().multiply(<span class="h">new BigDecimal(0.9)</span>);</pre>
+    <p class="reveal" style="margin-top:40px">Remarque de revue : <em>« Pour de l'argent : new BigDecimal("0.9"). »</em></p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">On demande la fonctionnalité en live. Si l'agent écrit du code correct du premier coup : tant mieux, je montre slopexamples/r08/bad, et je dis que c'est arrivé deux fois en revue.</aside>
+</section>
+
+<!-- 11. Le prompt (12:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 2 / 6 · l'agent écrit la règle</div>
+    <pre class="code reveal" style="margin-top:40px">Une remarque revient en revue : « <span class="h">…</span> »
+Écris une règle ArchUnit R08 dans AntiSlopRules,
+avec .because("revue : « <span class="h">la remarque</span> »").
+Ajoute slopexamples/r08/bad et r08/good.
+Lance mvn -q test -Dtest='AntiSlopRulesTest'.</pre>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Le prompt complet est dans RATCHET.md. Point clé : le message d'échec reprend la remarque de revue, c'est lui que l'agent lira plus tard.</aside>
+</section>
+
+<!-- 12. La règle (14:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 3 / 6 · la règle</div>
+    <pre class="code reveal" style="margin-top:40px">noClasses().should()
+    .callConstructor(<span class="h">BigDecimal.class, double.class</span>)
+    .as("R08 pas de new BigDecimal(double)")
+    .because("revue : « Pour de l'argent : "
+        + "new BigDecimal(\"0.1\") ou BigDecimal.valueOf(0.1). »");</pre>
+  </div>
+  {{CHROME}}
+</section>
+
+<!-- 13. La règle testée (16:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 4 / 6 · la règle est testée</div>
+    <div class="cols reveal" style="margin-top:50px">
+      <div class="panel"><h3 style="color:var(--red)">r08/bad</h3><p>DiscountSlop</p><p class="muted">doit être signalée</p></div>
+      <div class="panel"><h3 style="color:var(--green)">r08/good</h3><p>Discount</p><p class="muted">ne doit rien signaler</p></div>
+    </div>
+    <p class="reveal" style="margin-top:40px">Une règle qui ne casse jamais ne protège de rien.</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">AntiSlopRulesTest : 3 tests par règle (attrape chaque *Slop, laisse passer le bon, cite la remarque). 33 tests pour 11 règles.</aside>
+</section>
+
+<!-- 14. Le hook (18:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 5 / 6 · dans la boucle de l'agent</div>
+    <pre class="code reveal" style="margin-top:40px"><span class="c">// .claude/settings.json</span>
+"PostToolUse": [{ "matcher": <span class="h">"Edit|Write"</span>,
+  "hooks": [{ "type": "command",
+    "command": ".../archunit-gate.sh" }] }],
+"Stop": [{ "hooks": [ <span class="c">/* même script */</span> ] }]</pre>
+    <p class="muted reveal" style="margin-top:36px">Fichier .java modifié → mvn -q test -Dtest='*ArchTest' → exit 2</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Format vérifié sur la doc officielle des hooks Claude Code. PostToolUse exit 2 : Claude lit stderr. Stop exit 2 : Claude ne peut pas rendre la main. Le script vérifie stop_hook_active pour éviter la boucle.</aside>
+</section>
+
+<!-- 15. L'agent se corrige (20:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 6 / 6 · l'agent lit la revue</div>
+    <pre class="code reveal" style="margin-top:40px;font-size:22px">Rule '<span class="h">R08 pas de new BigDecimal(double)</span>, because revue :
+« … Pour de l'argent : new BigDecimal("0.1") … »' was violated:
+Method &lt;OrderLine.total()&gt; calls constructor
+  &lt;java.math.BigDecimal.&lt;init&gt;(double)&gt; in (OrderLine.java:21)</pre>
+    <h3 class="reveal" style="margin-top:50px">Le message de la règle <em>est</em> la remarque de revue.</h3>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Sortie réelle du hook, raccourcie. On relance la même demande à l'agent avec le hook actif : il voit la violation et corrige avant de rendre la main. Puis on montre la CI : mvn -B verify.</aside>
+</section>
+
+<!-- 16. Section chiffres (22:00) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:320px"><div class="k reveal">Partie 3</div><h1 class="reveal" style="margin-top:30px">Est-ce que <em>ça marche ?</em></h1></div>
+  {{CHROME}}
+</section>
+
+<!-- 17. Avant / après (22:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Mêmes tâches · sans puis avec les règles</div>
+    <table class="m reveal" style="margin-top:40px">
+      <tr><th>Mesure</th><th>Sans règles</th><th>Avec règles</th></tr>
+      <tr><td>Remarques de revue du catalogue</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td>Remarques hors catalogue</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td>Relances de l'agent par le hook</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td>Temps ajouté par le hook</td><td class="n">—</td><td class="n">—</td></tr>
+    </table>
+    <div class="todo reveal" style="margin-top:36px">à mesurer · protocole dans RATCHET.md</div>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Je ne montre aucun chiffre que je n'ai pas mesuré. Données brutes publiées avec les PR.</aside>
+</section>
+
+<!-- 18. Faux positifs (25:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Le vrai coût : les faux positifs</div>
+    <pre class="code reveal" style="margin-top:40px">try (var reader = new StringReader(id)) { … }
+<span class="c">// javac le compile en ... catch (Throwable t)</span></pre>
+    <p class="reveal" style="margin-top:40px">R01 interdit <em>catch (Exception)</em>, pas <em>catch (Throwable)</em>.</p>
+    <div class="todo reveal" style="margin-top:20px">faux positifs sur un vrai projet : à mesurer</div>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Premier faux positif trouvé en écrivant R01 : try-with-resources. Le bon exemple r01/good le prouve en test. Une règle bruyante est désactivée en une semaine.</aside>
+</section>
+
+<!-- 19. Section à emporter (27:00) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:320px"><div class="k reveal">Partie 4</div><h1 class="reveal" style="margin-top:30px">Les règles <em>à emporter</em></h1></div>
+  {{CHROME}}
+</section>
+
+<!-- 20. Le catalogue (27:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">11 règles ArchUnit · testées</div>
+    <div class="cols reveal" style="margin-top:40px;gap:40px">
+      <div class="panel"><p style="font-size:28px;margin:0">R01 catch (Exception)<br>R02 @Autowired sur champ<br>R03 Optional.get()<br>R04 System.out<br>R05 domaine → HTTP<br>R06 @Transactional privé</p></div>
+      <div class="panel"><p style="font-size:28px;margin:0">R07 contrôleur → repository<br>R08 BigDecimal(double)<br>R09 Date, SimpleDateFormat<br>R10 new RuntimeException<br>R11 test jamais lancé</p></div>
+    </div>
+  </div>
+  {{CHROME}}
+</section>
+
+<!-- 21. Fin (28:30) -->
+<section class="slide">
+  {{RULER}}
+  <div class="pad" style="top:260px">
+    <h2 class="reveal">Une remarque qui revient<br>devient une <em>règle</em>.</h2>
+    <p class="reveal" style="margin-top:50px">mekkiamiri.github.io/anti-slop-ratchet</p>
+    <p class="muted reveal">Questions ?</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Demain : prenez votre dernière remarque de revue écrite deux fois, et faites écrire la règle par votre agent.</aside>
+</section>

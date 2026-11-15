@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # Toutes les règles anti-slop (ProjectArchTest, TestSourcesArchTest) et leurs propres tests
+      # (AntiSlopRulesTest) tournent dans la phase test : une règle cassée bloque la PR.
+      - run: mvn -B verify

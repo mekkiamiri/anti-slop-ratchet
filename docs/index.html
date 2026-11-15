@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contre l'AI slop : un linter Java qui apprend des revues · Mekki Amiri</title>
+<meta name="description" content="Catalogue de règles ArchUnit nées de remarques de revue récurrentes sur du code écrit par des agents.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121416;--panel:#0b0c0d;--line:#2a2e31;--paper:#e9e4d8;--muted:#a9a39a;--dim:#5b5f63;--amber:#ffb000;--red:#ff5a4f;--green:#7fd18b}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 72% 0%,#1c2023 0%,var(--bg) 60%) fixed;color:var(--paper);font:400 15px/1.6 'Martian Mono',monospace}
+a{color:var(--amber)}
+main{max-width:1100px;margin:0 auto;padding:48px 20px 80px}
+.k{color:var(--amber);letter-spacing:.2em;text-transform:uppercase;font-size:12px}
+h1,h2,h3{font-family:'Instrument Serif',serif;font-weight:400;margin:0;letter-spacing:-.01em}
+h1{font-size:clamp(40px,7vw,76px);line-height:1;margin:14px 0 18px}
+h2{font-size:clamp(30px,4.5vw,46px);margin:56px 0 14px}
+h3{font-size:26px;line-height:1.15}
+em{color:var(--amber);font-style:italic}
+.muted{color:var(--muted)}
+.lead{font-size:17px;max-width:760px}
+.links{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+.links a{border:1px solid var(--dim);padding:8px 14px;text-decoration:none}
+.links a:hover{border-color:var(--amber)}
+.readouts{display:flex;flex-wrap:wrap;gap:14px;margin-top:22px}
+.readouts div{border:1px solid var(--dim);padding:14px 18px;min-width:180px;flex:1}
+.readouts b{display:block;font:500 34px 'Martian Mono';color:var(--amber);text-shadow:0 0 12px rgba(255,176,0,.4)}
+.readouts span{font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.todo{border:1px dashed var(--amber);color:var(--amber);padding:2px 10px;font-size:12px;letter-spacing:.08em;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 18px}
+input[type=search],textarea{background:var(--panel);color:var(--paper);border:1px solid var(--line);font:inherit;padding:10px 12px;width:100%}
+input[type=search]{max-width:360px}
+input:focus,textarea:focus{outline:none;border-color:var(--amber)}
+.chip{background:none;color:var(--muted);border:1px solid var(--line);font:inherit;font-size:12px;padding:6px 12px;cursor:pointer}
+.chip[aria-pressed=true]{color:#121416;background:var(--amber);border-color:var(--amber)}
+.count{font-size:12px;color:var(--muted);margin-left:auto}
+.rule{border:1px solid var(--line);margin-bottom:14px;background:rgba(11,12,13,.55)}
+.rule summary{list-style:none;cursor:pointer;padding:16px 18px;display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:baseline}
+.rule summary::-webkit-details-marker{display:none}
+.rule[open] summary{border-bottom:1px solid var(--line)}
+.id{color:var(--amber);font-weight:500}
+.cat{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.step{padding:16px 18px;border-right:1px solid var(--line);min-width:0}
+.step:last-child{border-right:0}
+.step .k{display:block;margin-bottom:8px;font-size:11px}
+.step.bad .k{color:var(--red)} .step.good .k{color:var(--green)}
+pre{margin:0;background:var(--panel);border:1px solid var(--line);padding:10px 12px;font:400 12px/1.55 'Martian Mono';white-space:pre;overflow-x:auto}
+.remark{font-family:'Instrument Serif',serif;font-size:20px;line-height:1.3}
+.try{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hits div{border-left:3px solid var(--red);padding:6px 12px;margin-bottom:8px;background:rgba(255,90,79,.06)}
+.hits .ok{border-left-color:var(--green);background:rgba(127,209,139,.06)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:400;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--dim);text-transform:uppercase;letter-spacing:.08em;font-size:11px}
+td{padding:10px;border-bottom:1px solid var(--line)}
+footer{margin-top:60px;color:var(--dim);font-size:12px}
+@media (max-width:820px){.steps,.try{grid-template-columns:1fr}.step{border-right:0;border-bottom:1px solid var(--line)}.rule summary{grid-template-columns:44px 1fr}.rule summary .cat{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <div class="k">Devoxx France 2027 · Tools-in-Action · v0</div>
+  <h1>Contre l'AI slop :<br>un linter Java qui <em>apprend des revues</em></h1>
+  <p class="lead">L'agent écrit du code qui compile, passe les tests et semble moderne. La revue trouve un anti-pattern. On le dit à l'agent ; il en introduit un autre. <strong>Et si chaque remarque de revue qui revient devenait une règle qui casse le build ?</strong></p>
+  <p class="lead muted">Le prompt suggère, la règle s'impose. Ci-dessous : 11 règles ArchUnit, chacune née d'une remarque de revue, avec le mauvais code, le bon code et la règle. Toutes tournent et sont testées dans le dépôt.</p>
+  <div class="links">
+    <a href="https://github.com/mekkiamiri/anti-slop-ratchet">Le dépôt</a>
+    <a href="https://github.com/mekkiamiri/anti-slop-ratchet/blob/main/RATCHET.md">La méthode (RATCHET.md)</a>
+    <a href="slides/">Les slides</a>
+  </div>
+
+  <div class="readouts">
+    <div><b>11</b><span>règles testées</span></div>
+    <div><b>22</b><span>exemples mauvais / bon</span></div>
+    <div><b>—</b><span>remarques de revue avant</span><br><span class="todo">à mesurer</span></div>
+    <div><b>—</b><span>remarques de revue après</span><br><span class="todo">à mesurer</span></div>
+  </div>
+  <p class="muted" style="font-size:13px">Le compteur « avant / après » viendra d'une expérience publiée avec ses données brutes (protocole dans RATCHET.md). Aucun chiffre n'est affiché tant qu'il n'est pas mesuré.</p>
+
+  <h2>Le catalogue</h2>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Filtrer : Optional, Spring, catch…" aria-label="Filtrer les règles">
+    <span id="chips"></span>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="rules"></div>
+
+  <h2>Essayez : collez du Java</h2>
+  <p class="muted">Collez un extrait écrit par votre agent. La page cherche les motifs des règles du catalogue. <strong>Approximation par motifs texte</strong> : les vraies règles ArchUnit lisent le bytecode compilé et voient ce qu'un motif rate (et inversement).</p>
+  <div class="try">
+    <textarea id="code" rows="14" spellcheck="false" aria-label="Code Java à analyser">@Service
+public class OrderService {
+    @Autowired
+    private OrderRepository repository;
+
+    public Order find(String id) {
+        try {
+            return repository.findById(id).get();
+        } catch (Exception e) {
+            System.out.println("error " + e);
+            throw new RuntimeException("error");
+        }
+    }
+}</textarea>
+    <div class="hits" id="hits" aria-live="polite"></div>
+  </div>
+
+  <h2>La boucle</h2>
+  <table>
+    <tr><th>Étape</th><th>Quoi</th><th>Où dans le dépôt</th></tr>
+    <tr><td>1</td><td>La même remarque revient deux fois en revue</td><td>le texte d'origine est dans <code>.because(…)</code></td></tr>
+    <tr><td>2</td><td>L'agent écrit la règle (prompt type fourni)</td><td><code>AntiSlopRules.java</code></td></tr>
+    <tr><td>3</td><td>La règle est testée : elle attrape le mauvais, laisse passer le bon</td><td><code>AntiSlopRulesTest</code>, <code>slopexamples/rNN</code></td></tr>
+    <tr><td>4</td><td>Branchée dans la boucle de l'agent et dans la CI</td><td>hook Claude Code <code>PostToolUse</code> + <code>Stop</code>, <code>mvn -B verify</code></td></tr>
+  </table>
+
+  <h2>État</h2>
+  <table>
+    <tr><th>Élément</th><th>État</th></tr>
+    <tr><td>Projet Spring Boot de commandes + 11 règles + tests des règles</td><td>tourne (<code>mvn -B verify</code>)</td></tr>
+    <tr><td>Hook Claude Code qui relance les règles après chaque fichier Java</td><td>écrit et essayé à la main</td></tr>
+    <tr><td>Remarques de revue avant / après, faux positifs, coût du hook</td><td><span class="todo">à mesurer</span></td></tr>
+    <tr><td>Règles sur le code source (Error Prone, Checkstyle)</td><td>pas encore fait</td></tr>
+  </table>
+
+  <footer>Mekki Amiri · Apache-2.0 · Sources : F. Letsch, « Linters: The Most Underabused Tool In The AI-Slop Era » (2026) ; B. Böckeler, « Harness engineering for coding agent users » (2026) ; peteromallet/desloppify.</footer>
+</main>
+
+<script>
+const RULES = [
+  {id:'R01', cat:'Exceptions', title:'Pas de catch (Exception) qui avale l\'erreur',
+   remark:'Ce catch (Exception e) avale l\'erreur et le log ne dit rien. Attrape l\'exception précise ou laisse-la remonter jusqu\'au handler.',
+   bad:'try {\n    return callBank(orderId, cents);\n} catch (Exception e) {\n    LOG.error("Error");\n    return false;\n}',
+   good:'try (StringReader r = new StringReader(id)) {\n    return r.read() != -1;\n} catch (IOException e) {\n    throw new UncheckedIOException(\n        "Paiement impossible : " + id, e);\n}',
+   rule:'noCodeUnits()\n  .should(CATCH_GENERIC_EXCEPTION)\n// Exception, RuntimeException\n// (pas Throwable : try-with-resources)',
+   re:[/catch\s*\(\s*(final\s+)?(Exception|RuntimeException)\s+\w+\s*\)/]},
+  {id:'R02', cat:'Spring', title:'Pas d\'injection par champ',
+   remark:'Pas de @Autowired sur un champ : injection par constructeur, champ final, et la classe se teste sans Spring.',
+   bad:'@Autowired\nprivate OrderStore store;',
+   good:'private final OrderStore store;\n\npublic OrderService(OrderStore store) {\n    this.store = store;\n}',
+   rule:'GeneralCodingRules\n  .NO_CLASSES_SHOULD_USE_FIELD_INJECTION',
+   re:[/@(Autowired|Inject|Resource)\s+(private|protected|public)?\s*[\w<>,\s]+\s+\w+\s*;/]},
+  {id:'R03', cat:'Types', title:'Pas d\'Optional.get()',
+   remark:'Optional.get() sans test, c\'est un NoSuchElementException en prod. Utilise orElseThrow(() -> new XxxNotFoundException(id)).',
+   bad:'return store.find(id).get();',
+   good:'return store.find(id)\n    .orElseThrow(() -> new OrderMissingException(id));',
+   rule:'noClasses().should()\n  .callMethod(Optional.class, "get")',
+   re:[/\.get\(\s*\)/], hint:'(tout .get() sans argument : vérifiez que c\'est un Optional)'},
+  {id:'R04', cat:'Logs', title:'Pas de System.out ni printStackTrace()',
+   remark:'Pas de System.out ni de printStackTrace : un logger SLF4J, avec le contexte (identifiant de la commande).',
+   bad:'System.out.println("Order confirmed: " + orderId);\n// ou\ne.printStackTrace();',
+   good:'LOG.info("Commande {} confirmée", orderId);',
+   rule:'GeneralCodingRules\n  .NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS',
+   re:[/System\.(out|err)\b/, /\.printStackTrace\(\s*\)/]},
+  {id:'R05', cat:'Architecture', title:'Le métier ne connaît pas HTTP',
+   remark:'Le service lève une ResponseStatusException(HttpStatus.NOT_FOUND) : le métier ne connaît pas HTTP. Lève OrderNotFoundException, le handler web traduit en 404.',
+   bad:'// application/OrderQuery.java\n.orElseThrow(() ->\n    new ResponseStatusException(HttpStatus.NOT_FOUND));',
+   good:'// application/OrderQuery.java\n.orElseThrow(() -> new OrderMissingException(id));\n// web/OrderErrors.java\n@ExceptionHandler(OrderMissingException.class)',
+   rule:'noClasses().that()\n  .resideInAnyPackage("..domain..", "..application..")\n  .should().dependOnClassesThat()\n  .resideInAnyPackage("..web..",\n    "org.springframework.web..", "org.springframework.http..")',
+   re:[/ResponseStatusException|HttpStatus\.\w+/], hint:'(seulement grave dans le domaine ou un service)'},
+  {id:'R06', cat:'Spring', title:'Pas de @Transactional sur une méthode privée',
+   remark:'Ce @Transactional sur une méthode privée ne fait rien : le proxy Spring ne la voit pas. Mets-le sur la méthode publique appelée de l\'extérieur.',
+   bad:'public void bill(String id) {\n    saveInvoiceAndDebit(id);\n}\n\n@Transactional\nprivate void saveInvoiceAndDebit(String id) { }',
+   good:'@Transactional\npublic void bill(String id) {\n    saveInvoiceAndDebit(id);\n}\n\nprivate void saveInvoiceAndDebit(String id) { }',
+   rule:'methods().that()\n  .areAnnotatedWith(Transactional.class)\n  .should().notBePrivate()\n  .andShould().notBeFinal()',
+   re:[/@Transactional(\([^)]*\))?\s+(private|(public\s+|protected\s+)?final)\b/]},
+  {id:'R07', cat:'Architecture', title:'Un contrôleur ne parle pas au stockage',
+   remark:'Le contrôleur appelle le repository directement et saute le service : les règles métier et la transaction passent à la trappe.',
+   bad:'// web/OrderController.java\nrepository.updateStatus(id, "CANCELLED");',
+   good:'// web/OrderController.java\ncancellation.cancel(id);',
+   rule:'noClasses().that().resideInAPackage("..web..")\n  .should().dependOnClassesThat()\n  .haveSimpleNameEndingWith("Repository")\n  .orShould()...("..infrastructure..")',
+   re:[/@(Rest)?Controller[\s\S]*\b\w*Repository\b/]},
+  {id:'R08', cat:'Types', title:'Pas de new BigDecimal(double)',
+   remark:'new BigDecimal(0.1) vaut 0.1000000000000000055511151231257827... Pour de l\'argent : new BigDecimal("0.1") ou BigDecimal.valueOf(0.1).',
+   bad:'return price.multiply(new BigDecimal(0.9));',
+   good:'private static final BigDecimal RATE =\n    new BigDecimal("0.9");',
+   rule:'noClasses().should()\n  .callConstructor(BigDecimal.class, double.class)',
+   re:[/new\s+BigDecimal\(\s*-?\d+\.\d*\s*\)/, /new\s+BigDecimal\(\s*\w+\s*\*\s*1\.0\s*\)/]},
+  {id:'R09', cat:'Types', title:'Pas de Date ni SimpleDateFormat',
+   remark:'Date et SimpleDateFormat datent de Java 1.1 et SimpleDateFormat n\'est pas thread-safe. java.time : Instant, LocalDate, DateTimeFormatter, et un Clock injecté.',
+   bad:'private static final SimpleDateFormat FORMAT =\n    new SimpleDateFormat("dd/MM/yyyy");\nFORMAT.format(new Date(...));',
+   good:'private static final DateTimeFormatter FORMAT =\n    DateTimeFormatter.ofPattern("dd/MM/yyyy");\nLocalDate.now(clock).plusDays(3).format(FORMAT);',
+   rule:'GeneralCodingRules\n  .OLD_DATE_AND_TIME_CLASSES_SHOULD_NOT_BE_USED',
+   re:[/\b(java\.util\.Date|new\s+Date\(|SimpleDateFormat|Calendar\.getInstance)/]},
+  {id:'R10', cat:'Exceptions', title:'Pas de throw new RuntimeException("error")',
+   remark:'throw new RuntimeException("error") : personne ne peut l\'attraper proprement. Crée une exception métier qui porte un nom et le contexte.',
+   bad:'if (quantity <= 0) {\n    throw new RuntimeException("error");\n}',
+   good:'if (quantity <= 0) {\n    throw new InvalidQuantityException(sku, quantity);\n}',
+   rule:'GeneralCodingRules\n  .NO_CLASSES_SHOULD_THROW_GENERIC_EXCEPTIONS',
+   re:[/throw\s+new\s+(RuntimeException|Exception|Throwable|Error)\s*\(/]},
+  {id:'R11', cat:'Tests', title:'Une classe de test se termine par Test',
+   remark:'OrderTotalCheck n\'a jamais tourné : Surefire ne lance que *Test, Test*, *Tests et *TestCase. Le test était vert parce qu\'il n\'existait pas.',
+   bad:'class OrderTotalCheck {\n    @Test\n    void total() {\n        assertEquals(3, 1 + 1);\n    }\n}',
+   good:'class OrderTotalTest {\n    @Test\n    void total() {\n        assertEquals(2, 1 + 1);\n    }\n}',
+   rule:'methods().that().areAnnotatedWith(Test.class)\n  .should().beDeclaredInClassesThat()\n  .haveSimpleNameEndingWith("Test")',
+   re:[], check: code => /@(Test|ParameterizedTest)\b/.test(code) && /class\s+(\w+)/.test(code) && !/class\s+\w*Test\b/.test(code)}
+];
+
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const cats = ['Toutes', ...new Set(RULES.map(r => r.cat))];
+let cat = 'Toutes';
+const chips = document.getElementById('chips');
+cats.forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.textContent = c; b.setAttribute('aria-pressed', c === cat);
+  b.onclick = () => { cat = c; chips.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+  chips.appendChild(b);
+});
+
+function render() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const list = RULES.filter(r => (cat === 'Toutes' || r.cat === cat) &&
+    (!q || [r.id, r.cat, r.title, r.remark, r.bad, r.good, r.rule].join(' ').toLowerCase().includes(q)));
+  document.getElementById('count').textContent = list.length + ' / ' + RULES.length + ' règles';
+  document.getElementById('rules').innerHTML = list.map((r, i) => `
+    <details class="rule" ${i === 0 && !q ? 'open' : ''}>
+      <summary><span class="id">${r.id}</span><h3>${esc(r.title)}</h3><span class="cat">${r.cat}</span></summary>
+      <div class="steps">
+        <div class="step"><span class="k">1 · Remarque de revue</span><p class="remark">« ${esc(r.remark)} »</p></div>
+        <div class="step bad"><span class="k">2 · Code presque juste</span><pre>${esc(r.bad)}</pre></div>
+        <div class="step good"><span class="k">3 · Correction</span><pre>${esc(r.good)}</pre></div>
+        <div class="step"><span class="k">4 · Règle ArchUnit</span><pre>${esc(r.rule)}</pre></div>
+      </div>
+    </details>`).join('') || '<p class="muted">Aucune règle ne correspond.</p>';
+}
+
+function scan() {
+  const code = document.getElementById('code').value;
+  const hits = RULES.filter(r => r.check ? r.check(code) : r.re.some(re => re.test(code)));
+  document.getElementById('hits').innerHTML = hits.length
+    ? hits.map(r => `<div><span class="id">${r.id}</span> ${esc(r.title)} <span class="muted">${r.hint ? esc(r.hint) : ''}</span><br><span class="muted">« ${esc(r.remark)} »</span></div>`).join('')
+    : '<div class="ok">Aucun motif du catalogue trouvé. (Seul le build fait foi.)</div>';
+}
+
+document.getElementById('q').addEventListener('input', render);
+document.getElementById('code').addEventListener('input', scan);
+render(); scan();
+</script>
+</body>
+</html>
