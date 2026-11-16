@@ -1,5 +1,6 @@
 package io.github.mekkiamiri.ratchet.order.web;
 
+import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
 import io.github.mekkiamiri.ratchet.order.domain.InvalidOrderException;
 import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -19,5 +20,10 @@ public class OrderExceptionHandler {
     @ExceptionHandler(InvalidOrderException.class)
     public ProblemDetail invalid(InvalidOrderException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, e.getMessage());
+    }
+
+    @ExceptionHandler(ConcurrentOrderUpdateException.class)
+    public ProblemDetail conflict(ConcurrentOrderUpdateException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
     }
 }

@@ -73,7 +73,7 @@ footer{margin-top:60px;color:var(--dim);font-size:12px}
 
   <div class="readouts">
     <div><b>11</b><span>règles testées</span></div>
-    <div><b>22</b><span>exemples mauvais / bon</span></div>
+    <div><b>11 / 11</b><span>mauvais / bons exemples</span></div>
     <div><b>—</b><span>remarques de revue avant</span><br><span class="todo">à mesurer</span></div>
     <div><b>—</b><span>remarques de revue après</span><br><span class="todo">à mesurer</span></div>
   </div>
@@ -120,7 +120,8 @@ public class OrderService {
   <table>
     <tr><th>Élément</th><th>État</th></tr>
     <tr><td>Projet Spring Boot de commandes + 11 règles + tests des règles</td><td>tourne (<code>mvn -B verify</code>)</td></tr>
-    <tr><td>Hook Claude Code qui relance les règles après chaque fichier Java</td><td>écrit et essayé à la main</td></tr>
+    <tr><td>Hook Claude Code qui relance les règles après un fichier Java modifié et avant de rendre la main</td><td>écrit et essayé à la main (violation, build cassé, Stop relancé)</td></tr>
+    <tr><td>Adoption sur du code existant (<code>FreezingArchRule</code> d'ArchUnit)</td><td>décrite dans RATCHET.md</td></tr>
     <tr><td>Remarques de revue avant / après, faux positifs, coût du hook</td><td><span class="todo">à mesurer</span></td></tr>
     <tr><td>Règles sur le code source (Error Prone, Checkstyle)</td><td>pas encore fait</td></tr>
   </table>
@@ -164,7 +165,7 @@ const RULES = [
    remark:'Ce @Transactional sur une méthode privée ne fait rien : le proxy Spring ne la voit pas. Mets-le sur la méthode publique appelée de l\'extérieur.',
    bad:'public void bill(String id) {\n    saveInvoiceAndDebit(id);\n}\n\n@Transactional\nprivate void saveInvoiceAndDebit(String id) { }',
    good:'@Transactional\npublic void bill(String id) {\n    saveInvoiceAndDebit(id);\n}\n\nprivate void saveInvoiceAndDebit(String id) { }',
-   rule:'methods().that()\n  .areAnnotatedWith(Transactional.class)\n  .should().notBePrivate()\n  .andShould().notBeFinal()',
+   rule:'methods().that()\n  .areAnnotatedWith("org.springframework...Transactional")\n  .or().areAnnotatedWith("jakarta.transaction.Transactional")\n  .should().notBePrivate()\n  .andShould().notBeFinal()',
    re:[/@Transactional(\([^)]*\))?\s+(private|(public\s+|protected\s+)?final)\b/]},
   {id:'R07', cat:'Architecture', title:'Un contrôleur ne parle pas au stockage',
    remark:'Le contrôleur appelle le repository directement et saute le service : les règles métier et la transaction passent à la trappe.',
@@ -176,8 +177,8 @@ const RULES = [
    remark:'new BigDecimal(0.1) vaut 0.1000000000000000055511151231257827... Pour de l\'argent : new BigDecimal("0.1") ou BigDecimal.valueOf(0.1).',
    bad:'return price.multiply(new BigDecimal(0.9));',
    good:'private static final BigDecimal RATE =\n    new BigDecimal("0.9");',
-   rule:'noClasses().should()\n  .callConstructor(BigDecimal.class, double.class)',
-   re:[/new\s+BigDecimal\(\s*-?\d+\.\d*\s*\)/, /new\s+BigDecimal\(\s*\w+\s*\*\s*1\.0\s*\)/]},
+   rule:'noClasses().should()\n  .callConstructor(BigDecimal.class, double.class)\n  .orShould().callConstructor(BigDecimal.class,\n    double.class, MathContext.class)',
+   re:[/new\s+BigDecimal\(\s*-?\d+\.\d*\s*[,)]/, /new\s+BigDecimal\(\s*\w+\s*\*\s*1\.0\s*\)/]},
   {id:'R09', cat:'Types', title:'Pas de Date ni SimpleDateFormat',
    remark:'Date et SimpleDateFormat datent de Java 1.1 et SimpleDateFormat n\'est pas thread-safe. java.time : Instant, LocalDate, DateTimeFormatter, et un Clock injecté.',
    bad:'private static final SimpleDateFormat FORMAT =\n    new SimpleDateFormat("dd/MM/yyyy");\nFORMAT.format(new Date(...));',
@@ -190,12 +191,12 @@ const RULES = [
    good:'if (quantity <= 0) {\n    throw new InvalidQuantityException(sku, quantity);\n}',
    rule:'GeneralCodingRules\n  .NO_CLASSES_SHOULD_THROW_GENERIC_EXCEPTIONS',
    re:[/throw\s+new\s+(RuntimeException|Exception|Throwable|Error)\s*\(/]},
-  {id:'R11', cat:'Tests', title:'Une classe de test se termine par Test',
+  {id:'R11', cat:'Tests', title:'Une classe de test porte un nom que Surefire lance',
    remark:'OrderTotalCheck n\'a jamais tourné : Surefire ne lance que *Test, Test*, *Tests et *TestCase. Le test était vert parce qu\'il n\'existait pas.',
    bad:'class OrderTotalCheck {\n    @Test\n    void total() {\n        assertEquals(3, 1 + 1);\n    }\n}',
    good:'class OrderTotalTest {\n    @Test\n    void total() {\n        assertEquals(2, 1 + 1);\n    }\n}',
-   rule:'methods().that().areAnnotatedWith(Test.class)\n  .should().beDeclaredInClassesThat()\n  .haveSimpleNameEndingWith("Test")',
-   re:[], check: code => /@(Test|ParameterizedTest)\b/.test(code) && /class\s+(\w+)/.test(code) && !/class\s+\w*Test\b/.test(code)}
+   rule:'methods().that().areAnnotatedWith(Test)\n  .should().beDeclaredInClassesThat(RUN_BY_SUREFIRE)\n// Test*, *Test, *Tests, *TestCase\n// (@Nested : nom de la classe englobante)',
+   re:[], check: code => { const m = code.match(/class\s+(\w+)/); return /@(Test|ParameterizedTest)\b/.test(code) && !!m && !/^(Test\w*|\w*Test|\w*Tests|\w*TestCase)$/.test(m[1]); }}
 ];
 
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));

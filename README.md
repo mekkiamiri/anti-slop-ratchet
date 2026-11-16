@@ -10,11 +10,11 @@ Dépôt de démo du talk « Contre l'AI slop : un linter Java qui apprend des re
 
 ## Ce qui tourne
 
-- Un petit projet **Spring Boot 4.1.2 / Java 21** de gestion de commandes (`src/main/java/io/github/mekkiamiri/ratchet`) : domaine, cas d'usage, stockage en mémoire, API REST.
+- Un petit projet **Spring Boot 4.1.2 / Java 21** de gestion de commandes (`src/main/java/io/github/mekkiamiri/ratchet`) : domaine, cas d'usage, stockage en mémoire avec verrou optimiste (testé en concurrence), API REST validée (un JSON incomplet donne 400).
 - **11 règles anti-slop** en ArchUnit 1.5.1 ([`AntiSlopRules.java`](src/test/java/io/github/mekkiamiri/ratchet/rules/AntiSlopRules.java)), chacune avec la remarque de revue d'origine dans son message d'échec.
-- **22 exemples volontairement fautifs ou corrigés** dans [`slopexamples`](src/test/java/io/github/mekkiamiri/slopexamples) (`rNN/bad` et `rNN/good`), hors du code de production et hors du scan Spring.
+- **11 mauvais / 11 bons exemples** (un dossier de chaque par règle) dans [`slopexamples`](src/test/java/io/github/mekkiamiri/slopexamples) (`rNN/bad` et `rNN/good`), hors du code de production et hors du scan Spring.
 - **Les règles sont testées** ([`AntiSlopRulesTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/AntiSlopRulesTest.java)) : chacune attrape chaque classe `*Slop` de son mauvais exemple et laisse passer le bon.
-- **Les règles sont appliquées** au projet ([`ProjectArchTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/ProjectArchTest.java), [`TestSourcesArchTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/TestSourcesArchTest.java)).
+- **Les règles sont appliquées** au projet, toutes reprises automatiquement ([`ProjectArchTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/ProjectArchTest.java), [`TestSourcesArchTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/TestSourcesArchTest.java)), et [`ProjectLayoutArchTest`](src/test/java/io/github/mekkiamiri/ratchet/rules/ProjectLayoutArchTest.java) casse si un paquet visé par une règle disparaît.
 - **Hook Claude Code** ([`.claude/settings.json`](.claude/settings.json), [`.claude/hooks/archunit-gate.sh`](.claude/hooks/archunit-gate.sh)) : après chaque fichier `.java` écrit par l'agent, et avant qu'il rende la main, `mvn -q test -Dtest='*ArchTest'` ; en cas d'échec, l'agent lit les violations.
 - **CI** GitHub Actions : `mvn -B verify` sur Java 21.
 
@@ -31,12 +31,13 @@ Prérequis : Java 21 et Maven. Seulement les règles : `mvn -q test -Dtest='*Arc
 | Élément | État |
 |---|---|
 | Projet Spring Boot d'exemple | tourne, testé |
-| 11 règles ArchUnit + 33 tests des règles | tourne |
+| 11 règles ArchUnit, 3 tests par règle + 1 test de cohérence du catalogue | tourne |
 | Page de cohérence (chaque règle documentée sur la page et dans RATCHET.md) | tourne (`CatalogPageTest`) |
-| Hook Claude Code `PostToolUse` + `Stop` | écrit, essayé à la main avec des entrées simulées ; pas encore en session réelle filmée |
+| Hook Claude Code `PostToolUse` + `Stop` | écrit, essayé à la main avec des entrées simulées (projet propre, violation, build cassé, Stop relancé) ; pas encore en session réelle filmée |
 | Remarques de revue avant / après | **à mesurer** (protocole dans RATCHET.md) |
 | Faux positifs sur un vrai projet, coût en temps du hook | **à mesurer** |
 | Règles sur le code source (Error Prone, Checkstyle) | pas fait |
+| Adoption sur du code existant avec `FreezingArchRule` | décrite dans RATCHET.md, pas d'exemple dans ce dépôt |
 | Vidéo de secours de la démo | pas faite |
 
 Aucun chiffre de résultat n'est publié tant qu'il n'est pas mesuré.

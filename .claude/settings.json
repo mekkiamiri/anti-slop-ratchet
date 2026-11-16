@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh",
+            "timeout": 180
           }
         ]
       }
@@ -16,7 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh",
+            "timeout": 180
           }
         ]
       }

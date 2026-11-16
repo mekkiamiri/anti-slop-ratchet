@@ -1,7 +1,7 @@
 <!-- Slides du talk « Contre l'AI slop : un linter Java qui apprend des revues » (Tools-in-Action, 30 min)
      Construire : python3 <kit>/build_deck.py slides/slides.html docs/slides/index.html "Contre l'AI slop"
      Règle : aucun chiffre de résultat avant mesure ; les emplacements sont marqués « à mesurer ».
-     Plan : 0-4 code presque juste · 4-10 guides contre capteurs · 10-22 démo · 22-27 chiffres · 27-30 à emporter -->
+     Plan : 0-4 code presque juste · 4-9:30 guides contre capteurs · 9:30-24 démo · 24-26 chiffres (à mesurer) · 26-30 à emporter -->
 
 <!-- 1. Titre (0:00) -->
 <section class="slide">
@@ -10,7 +10,7 @@
     <div class="k reveal">Devoxx France 2027 · Tools-in-Action</div>
     <h1 class="reveal" style="margin-top:40px">Contre l'AI slop :<br><em>un linter qui apprend des revues</em></h1>
   </div>
-  <div class="readouts reveal" style="position:absolute;left:120px;bottom:130px"><div><b>11</b><span>règles</span></div><div><b>22</b><span>exemples</span></div><div><b>1</b><span>hook</span></div></div>
+  <div class="readouts reveal" style="position:absolute;left:120px;bottom:130px"><div><b>11</b><span>règles</span></div><div><b>11 / 11</b><span>mauvais / bons</span></div><div><b>1</b><span>hook</span></div></div>
   <div style="position:absolute;right:120px;bottom:140px;text-align:right" class="reveal"><h3>Mekki Amiri</h3><p class="muted" style="font-size:24px;margin:8px 0 0">Tech Lead · architecte système</p></div>
   <aside class="notes">Bonjour. 30 minutes, du code, une démo. Je relis chaque semaine du code écrit par des agents : voici ce que j'ai arrêté de répéter.</aside>
 </section>
@@ -52,14 +52,7 @@
   {{CHROME}}
 </section>
 
-<!-- 5. Section guides / capteurs (4:00) -->
-<section class="slide">
-  {{RULER}}
-  <div class="pad" style="top:320px"><div class="k reveal">Partie 1</div><h1 class="reveal" style="margin-top:30px">Le prompt <em>suggère</em></h1></div>
-  {{CHROME}}
-</section>
-
-<!-- 6. Guides contre capteurs (4:30) -->
+<!-- 5. Guides contre capteurs (4:00) -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Böckeler · Harness engineering (2026)</div>
@@ -72,7 +65,7 @@
   <aside class="notes">Birgitta Böckeler, martinfowler.com, avril 2026 : feedforward et feedback. Les deux sont utiles. Mais un guide peut être ignoré, un capteur déterministe casse à chaque fois.</aside>
 </section>
 
-<!-- 7. Letsch (6:30) -->
+<!-- 6. Letsch (6:00) -->
 <section class="slide">
   <div class="pad" style="top:230px">
     <div class="k reveal">Fabian Letsch · avril 2026</div>
@@ -83,7 +76,7 @@
   <aside class="notes">Article « Linters: The Most Underabused Tool In The AI-Slop Era ». Son exemple est en TypeScript ; on fait la même chose en Java, avec ArchUnit. Desloppify (peteromallet) prend l'autre voie : un score global et une boucle de correction ; ici, une règle par remarque.</aside>
 </section>
 
-<!-- 8. Le ratchet (8:00) -->
+<!-- 7. Le ratchet (8:00) -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Le ratchet</div>
@@ -97,31 +90,33 @@
   {{CHROME}}
 </section>
 
-<!-- 9. Section démo (10:00) -->
+<!-- 8. Section démo (9:30) -->
 <section class="slide">
   {{RULER}}
-  <div class="pad" style="top:320px"><div class="k reveal">Partie 2 · démo</div><h1 class="reveal" style="margin-top:30px">Une règle née <em>d'une erreur</em></h1></div>
+  <div class="pad" style="top:320px"><div class="k reveal">Démo</div><h1 class="reveal" style="margin-top:30px">Une règle née <em>d'une erreur</em></h1></div>
   {{CHROME}}
   <aside class="notes">Démo live. Plan B : vidéo enregistrée. Terminal + IDE + Claude Code ouverts sur le dépôt anti-slop-ratchet, hooks désactivés au départ.</aside>
 </section>
 
-<!-- 10. L'erreur (10:30) -->
+<!-- 9. L'erreur (10:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 1 / 6 · l'erreur</div>
+    <div class="k reveal">Démo · 1 / 7 · l'erreur</div>
     <h3 class="reveal" style="margin:30px 0 40px">« Ajoute une remise de 10 % sur la commande. »</h3>
-    <pre class="code reveal"><span class="c">// écrit par l'agent, revu par moi</span>
-return total().multiply(<span class="h">new BigDecimal(0.9)</span>);</pre>
+    <pre class="code reveal"><span class="c">// Order.java, écrit par l'agent, revu par moi</span>
+public BigDecimal discountedTotal() {
+    return total().multiply(<span class="h">new BigDecimal(0.9)</span>);
+}</pre>
     <p class="reveal" style="margin-top:40px">Remarque de revue : <em>« Pour de l'argent : new BigDecimal("0.9"). »</em></p>
   </div>
   {{CHROME}}
   <aside class="notes">On demande la fonctionnalité en live. Si l'agent écrit du code correct du premier coup : tant mieux, je montre slopexamples/r08/bad, et je dis que c'est arrivé deux fois en revue.</aside>
 </section>
 
-<!-- 11. Le prompt (12:30) -->
+<!-- 10. Le prompt (11:30) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 2 / 6 · l'agent écrit la règle</div>
+    <div class="k reveal">Démo · 2 / 7 · l'agent écrit la règle</div>
     <pre class="code reveal" style="margin-top:40px">Une remarque revient en revue : « <span class="h">…</span> »
 Écris une règle ArchUnit R08 dans AntiSlopRules,
 avec .because("revue : « <span class="h">la remarque</span> »").
@@ -132,119 +127,144 @@ Lance mvn -q test -Dtest='AntiSlopRulesTest'.</pre>
   <aside class="notes">Le prompt complet est dans RATCHET.md. Point clé : le message d'échec reprend la remarque de revue, c'est lui que l'agent lira plus tard.</aside>
 </section>
 
-<!-- 12. La règle (14:30) -->
+<!-- 11. La règle (13:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 3 / 6 · la règle</div>
-    <pre class="code reveal" style="margin-top:40px">noClasses().should()
+    <div class="k reveal">Démo · 3 / 7 · la règle</div>
+    <pre class="code reveal" style="margin-top:40px;font-size:22px">noClasses().should()
     .callConstructor(<span class="h">BigDecimal.class, double.class</span>)
-    .as("R08 pas de new BigDecimal(double)")
-    .because("revue : « Pour de l'argent : "
-        + "new BigDecimal(\"0.1\") ou BigDecimal.valueOf(0.1). »");</pre>
+    .orShould().callConstructor(BigDecimal.class, double.class, MathContext.class)
+    .as("R08 pas de new BigDecimal(double), avec ou sans MathContext")
+    .because("revue : « … Pour de l'argent : new BigDecimal(\"0.1\") … »");</pre>
   </div>
   {{CHROME}}
+  <aside class="notes">Le MathContext a été ajouté après relecture : new BigDecimal(0.9, MathContext.DECIMAL64) part de la même valeur fausse. Une règle s'affine comme un test.</aside>
 </section>
 
-<!-- 13. La règle testée (16:00) -->
+<!-- 12. La règle testée (14:30) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 4 / 6 · la règle est testée</div>
+    <div class="k reveal">Démo · 4 / 7 · la règle est testée</div>
     <div class="cols reveal" style="margin-top:50px">
-      <div class="panel"><h3 style="color:var(--red)">r08/bad</h3><p>DiscountSlop</p><p class="muted">doit être signalée</p></div>
+      <div class="panel"><h3 style="color:var(--red)">r08/bad</h3><p>DiscountSlop · RoundedDiscountSlop</p><p class="muted">doit être signalée</p></div>
       <div class="panel"><h3 style="color:var(--green)">r08/good</h3><p>Discount</p><p class="muted">ne doit rien signaler</p></div>
     </div>
     <p class="reveal" style="margin-top:40px">Une règle qui ne casse jamais ne protège de rien.</p>
   </div>
   {{CHROME}}
-  <aside class="notes">AntiSlopRulesTest : 3 tests par règle (attrape chaque *Slop, laisse passer le bon, cite la remarque). 33 tests pour 11 règles.</aside>
+  <aside class="notes">AntiSlopRulesTest : 3 tests par règle (attrape chaque *Slop, laisse passer le bon, cite la remarque). 34 tests pour 11 règles, dont un qui vérifie qu'aucune règle n'est oubliée.</aside>
+</section>
+
+<!-- 13. Le premier faux positif (16:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Démo · 5 / 7 · le premier faux positif</div>
+    <pre class="code reveal" style="margin-top:40px">try (var reader = new StringReader(id)) { … }
+<span class="c">// javac le compile en ... catch (Throwable t)</span></pre>
+    <p class="reveal" style="margin-top:40px">R01 interdit <em>catch (Exception)</em>, pas <em>catch (Throwable)</em>.</p>
+    <p class="muted reveal">Le prix : un vrai catch (Throwable) passe. Faux négatif assumé.</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Trouvé en écrivant R01. Le bon exemple r01/good utilise un try-with-resources et le prouve en test. Une règle bruyante est désactivée en une semaine : mieux vaut un faux négatif connu.</aside>
 </section>
 
 <!-- 14. Le hook (18:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 5 / 6 · dans la boucle de l'agent</div>
+    <div class="k reveal">Démo · 6 / 7 · dans la boucle de l'agent</div>
     <pre class="code reveal" style="margin-top:40px"><span class="c">// .claude/settings.json</span>
 "PostToolUse": [{ "matcher": <span class="h">"Edit|Write"</span>,
-  "hooks": [{ "type": "command",
+  "hooks": [{ "type": "command", "timeout": 180,
     "command": ".../archunit-gate.sh" }] }],
 "Stop": [{ "hooks": [ <span class="c">/* même script */</span> ] }]</pre>
-    <p class="muted reveal" style="margin-top:36px">Fichier .java modifié → mvn -q test -Dtest='*ArchTest' → exit 2</p>
+    <p class="muted reveal" style="margin-top:36px">Java modifié → mvn -q test -Dtest='*ArchTest' → exit 2</p>
   </div>
   {{CHROME}}
-  <aside class="notes">Format vérifié sur la doc officielle des hooks Claude Code. PostToolUse exit 2 : Claude lit stderr. Stop exit 2 : Claude ne peut pas rendre la main. Le script vérifie stop_hook_active pour éviter la boucle.</aside>
+  <aside class="notes">Format vérifié sur la doc officielle des hooks Claude Code. PostToolUse exit 2 : Claude lit stderr. Stop exit 2 : Claude ne peut pas rendre la main. Au Stop, le script revérifie à chaque fois ; Claude Code plafonne à 8 relances, ensuite c'est la CI qui bloque. Le script distingue « règle cassée » et « build cassé », et ne relance pas Maven si le Java n'a pas changé.</aside>
 </section>
 
 <!-- 15. L'agent se corrige (20:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Démo · 6 / 6 · l'agent lit la revue</div>
-    <pre class="code reveal" style="margin-top:40px;font-size:22px">Rule '<span class="h">R08 pas de new BigDecimal(double)</span>, because revue :
-« … Pour de l'argent : new BigDecimal("0.1") … »' was violated:
-Method &lt;OrderLine.total()&gt; calls constructor
-  &lt;java.math.BigDecimal.&lt;init&gt;(double)&gt; in (OrderLine.java:21)</pre>
-    <h3 class="reveal" style="margin-top:50px">Le message de la règle <em>est</em> la remarque de revue.</h3>
+    <div class="k reveal">Démo · 7 / 7 · l'agent lit la revue</div>
+    <pre class="code reveal" style="margin-top:40px;font-size:22px">Rule '<span class="h">R08 pas de new BigDecimal(double), avec ou sans MathContext</span>,
+because revue : « … Pour de l'argent : new BigDecimal("0.1") … »'
+was violated (1 times):
+Method &lt;…order.domain.Order.discountedTotal()&gt; calls constructor
+  &lt;java.math.BigDecimal.&lt;init&gt;(double)&gt; in (Order.java:72)</pre>
+    <p class="muted reveal" style="margin-top:20px;font-size:24px">sortie réelle du hook, raccourcie (…)</p>
+    <h3 class="reveal" style="margin-top:30px">Le message de la règle <em>est</em> la remarque de revue.</h3>
   </div>
   {{CHROME}}
-  <aside class="notes">Sortie réelle du hook, raccourcie. On relance la même demande à l'agent avec le hook actif : il voit la violation et corrige avant de rendre la main. Puis on montre la CI : mvn -B verify.</aside>
+  <aside class="notes">Sortie produite le 16/11/2026 en ajoutant vraiment discountedTotal() à Order.java ; seuls le texte complet de la remarque et le nom de paquet sont raccourcis. Le numéro de ligne changera en live. On relance la même demande avec le hook actif : l'agent voit la violation et corrige avant de rendre la main. Puis la CI : mvn -B verify.</aside>
 </section>
 
-<!-- 16. Section chiffres (22:00) -->
-<section class="slide">
-  {{RULER}}
-  <div class="pad" style="top:320px"><div class="k reveal">Partie 3</div><h1 class="reveal" style="margin-top:30px">Est-ce que <em>ça marche ?</em></h1></div>
-  {{CHROME}}
-</section>
-
-<!-- 17. Avant / après (22:30) -->
+<!-- 16. Est-ce que ça marche ? (24:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Mêmes tâches · sans puis avec les règles</div>
+    <div class="k reveal">Est-ce que ça marche ? · mêmes tâches, sans puis avec les règles</div>
     <table class="m reveal" style="margin-top:40px">
       <tr><th>Mesure</th><th>Sans règles</th><th>Avec règles</th></tr>
       <tr><td>Remarques de revue du catalogue</td><td class="n">—</td><td class="n">—</td></tr>
-      <tr><td>Remarques hors catalogue</td><td class="n">—</td><td class="n">—</td></tr>
-      <tr><td>Relances de l'agent par le hook</td><td class="n">—</td><td class="n">—</td></tr>
+      <tr><td>Faux positifs des règles</td><td class="n">—</td><td class="n">—</td></tr>
       <tr><td>Temps ajouté par le hook</td><td class="n">—</td><td class="n">—</td></tr>
     </table>
-    <div class="todo reveal" style="margin-top:36px">à mesurer · protocole dans RATCHET.md</div>
+    <div class="todo reveal" style="margin-top:36px">à mesurer · protocole et données brutes dans le dépôt</div>
   </div>
   {{CHROME}}
-  <aside class="notes">Je ne montre aucun chiffre que je n'ai pas mesuré. Données brutes publiées avec les PR.</aside>
+  <aside class="notes">Deux minutes, pas plus. Je ne montre aucun chiffre que je n'ai pas mesuré. Données brutes publiées avec les PR.</aside>
 </section>
 
-<!-- 18. Faux positifs (25:00) -->
+<!-- 17. Catalogue 1 / 2 (26:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Le vrai coût : les faux positifs</div>
-    <pre class="code reveal" style="margin-top:40px">try (var reader = new StringReader(id)) { … }
-<span class="c">// javac le compile en ... catch (Throwable t)</span></pre>
-    <p class="reveal" style="margin-top:40px">R01 interdit <em>catch (Exception)</em>, pas <em>catch (Throwable)</em>.</p>
-    <div class="todo reveal" style="margin-top:20px">faux positifs sur un vrai projet : à mesurer</div>
+    <div class="k reveal">À emporter · 1 / 2 · exceptions, Spring, architecture</div>
+    <table class="m reveal" style="margin-top:40px">
+      <tr><td class="n" style="text-align:left">R01</td><td>catch (Exception) qui avale l'erreur</td></tr>
+      <tr><td class="n" style="text-align:left">R02</td><td>@Autowired sur un champ</td></tr>
+      <tr><td class="n" style="text-align:left">R03</td><td>Optional.get()</td></tr>
+      <tr><td class="n" style="text-align:left">R04</td><td>System.out, printStackTrace()</td></tr>
+      <tr><td class="n" style="text-align:left">R05</td><td>le métier qui connaît HTTP</td></tr>
+      <tr><td class="n" style="text-align:left">R06</td><td>@Transactional sur une méthode privée</td></tr>
+    </table>
   </div>
   {{CHROME}}
-  <aside class="notes">Premier faux positif trouvé en écrivant R01 : try-with-resources. Le bon exemple r01/good le prouve en test. Une règle bruyante est désactivée en une semaine.</aside>
 </section>
 
-<!-- 19. Section à emporter (27:00) -->
-<section class="slide">
-  {{RULER}}
-  <div class="pad" style="top:320px"><div class="k reveal">Partie 4</div><h1 class="reveal" style="margin-top:30px">Les règles <em>à emporter</em></h1></div>
-  {{CHROME}}
-</section>
-
-<!-- 20. Le catalogue (27:30) -->
+<!-- 18. Catalogue 2 / 2 (27:00) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">11 règles ArchUnit · testées</div>
-    <div class="cols reveal" style="margin-top:40px;gap:40px">
-      <div class="panel"><p style="font-size:28px;margin:0">R01 catch (Exception)<br>R02 @Autowired sur champ<br>R03 Optional.get()<br>R04 System.out<br>R05 domaine → HTTP<br>R06 @Transactional privé</p></div>
-      <div class="panel"><p style="font-size:28px;margin:0">R07 contrôleur → repository<br>R08 BigDecimal(double)<br>R09 Date, SimpleDateFormat<br>R10 new RuntimeException<br>R11 test jamais lancé</p></div>
-    </div>
+    <div class="k reveal">À emporter · 2 / 2 · stockage, types, tests</div>
+    <table class="m reveal" style="margin-top:40px">
+      <tr><td class="n" style="text-align:left">R07</td><td>le contrôleur qui appelle le repository</td></tr>
+      <tr><td class="n" style="text-align:left">R08</td><td>new BigDecimal(double)</td></tr>
+      <tr><td class="n" style="text-align:left">R09</td><td>Date, SimpleDateFormat</td></tr>
+      <tr><td class="n" style="text-align:left">R10</td><td>throw new RuntimeException("error")</td></tr>
+      <tr><td class="n" style="text-align:left">R11</td><td>le test que Surefire ne lance jamais</td></tr>
+    </table>
+    <p class="muted reveal" style="margin-top:30px">Chacune : la remarque, le mauvais code, le bon code, le test.</p>
   </div>
   {{CHROME}}
 </section>
 
-<!-- 21. Fin (28:30) -->
+<!-- 19. FreezingArchRule (27:45) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Sur du code existant</div>
+    <pre class="code reveal" style="margin-top:40px">@ArchTest
+static final ArchRule r08 =
+    <span class="h">FreezingArchRule.freeze</span>(AntiSlopRules.R08_NO_BIGDECIMAL_FROM_DOUBLE);</pre>
+    <ul class="steps reveal">
+      <li data-n="01">Les violations existantes sont <em>gelées</em> dans un fichier versionné</li>
+      <li data-n="02">Seules les <em>nouvelles</em> cassent le build</li>
+      <li data-n="03">Une violation corrigée sort du fichier : <em>elle ne revient pas</em></li>
+    </ul>
+  </div>
+  {{CHROME}}
+  <aside class="notes">FreezingArchRule d'ArchUnit, c'est le cliquet tout fait : le stock de dette ne peut que baisser. Pas besoin de tout corriger avant de brancher une règle. Détails et propriétés dans RATCHET.md.</aside>
+</section>
+
+<!-- 20. Fin (29:00) -->
 <section class="slide">
   {{RULER}}
   <div class="pad" style="top:260px">

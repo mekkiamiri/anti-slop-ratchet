@@ -6,7 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/** Agrégat commande : on ajoute des lignes tant qu'elle est en brouillon, puis on la confirme. */
+/**
+ * Agrégat commande : on ajoute des lignes tant qu'elle est en brouillon, puis on la confirme.
+ *
+ * <p>{@code version} sert au verrou optimiste : le stockage refuse d'écrire une commande modifiée
+ * depuis sa lecture (deux confirmations concurrentes ne peuvent pas réussir toutes les deux).
+ */
 public class Order {
 
     private final OrderId id;
@@ -14,11 +19,25 @@ public class Order {
     private final Instant createdAt;
     private final List<OrderLine> lines = new ArrayList<>();
     private OrderStatus status = OrderStatus.DRAFT;
+    private final long version;
 
     public Order(OrderId id, String customer, Instant createdAt) {
+        this(id, customer, createdAt, List.of(), OrderStatus.DRAFT, 0);
+    }
+
+    private Order(OrderId id, String customer, Instant createdAt, List<OrderLine> lines, OrderStatus status,
+            long version) {
         this.id = Objects.requireNonNull(id, "id");
         this.customer = Objects.requireNonNull(customer, "customer");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
+        this.lines.addAll(lines);
+        this.status = Objects.requireNonNull(status, "status");
+        this.version = version;
+    }
+
+    /** Copie indépendante à la version donnée : le stockage ne partage jamais ses instances. */
+    public Order copyAtVersion(long newVersion) {
+        return new Order(id, customer, createdAt, lines, status, newVersion);
     }
 
     public void addLine(OrderLine line) {
@@ -67,5 +86,9 @@ public class Order {
 
     public OrderStatus status() {
         return status;
+    }
+
+    public long version() {
+        return version;
     }
 }

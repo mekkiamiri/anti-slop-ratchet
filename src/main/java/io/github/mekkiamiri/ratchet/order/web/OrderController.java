@@ -3,6 +3,7 @@ package io.github.mekkiamiri.ratchet.order.web;
 import io.github.mekkiamiri.ratchet.order.application.OrderService;
 import io.github.mekkiamiri.ratchet.order.domain.OrderId;
 import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +27,7 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderResponse create(@RequestBody OrderRequest request) {
+    public OrderResponse create(@Valid @RequestBody OrderRequest request) {
         List<OrderLine> lines = request.lines().stream()
                 .map(l -> new OrderLine(l.sku(), l.quantity(), l.unitPrice()))
                 .toList();

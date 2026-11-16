@@ -39,7 +39,8 @@ Exemple de code fautif :
 Ajoute deux exemples dans src/test/java/io/github/mekkiamiri/slopexamples/r<NN>/ :
 - bad/<Nom>Slop.java : le code fautif, minimal ;
 - good/<Nom>.java : la correction attendue (pense au cas limite qui pourrait donner un faux positif).
-Ajoute la ligne dans AntiSlopRulesTest.rules() et le champ @ArchTest dans ProjectArchTest.
+Annote la constante avec @ArchTest (ProjectArchTest reprend automatiquement toutes les règles
+de AntiSlopRules) et ajoute la ligne dans AntiSlopRulesTest.rules().
 Lance `mvn -q test -Dtest='AntiSlopRulesTest,*ArchTest'`. Ne modifie pas le code de production
 pour faire passer la règle sans me montrer les violations trouvées.
 ```
@@ -50,9 +51,10 @@ Une règle qui ne casse jamais ne protège de rien ; une règle qui casse sur du
 
 - qu'elle signale **chaque** classe `*Slop` du dossier `bad` ;
 - qu'elle ne signale **rien** dans le dossier `good` ;
-- que sa description commence par son identifiant et cite la remarque de revue.
+- que sa description commence par son identifiant et cite la remarque de revue ;
+- et, pour tout le catalogue, qu'aucune règle de `AntiSlopRules` n'a été oubliée dans `AntiSlopRulesTest` (`ProjectArchTest` les reprend toutes via `ArchTests.in(AntiSlopRules.class)`).
 
-Exemple de faux positif évité : R01 interdit `catch (Exception)` et `catch (RuntimeException)`, mais pas `catch (Throwable)`, parce que javac compile chaque *try-with-resources* en `catch (Throwable)`. Le bon exemple `r01/good/PaymentGateway` utilise un try-with-resources pour le prouver.
+Exemple de faux positif évité : R01 interdit `catch (Exception)` et `catch (RuntimeException)`, mais pas `catch (Throwable)`, parce que javac compile chaque *try-with-resources* en `catch (Throwable)`. Le bon exemple `r01/good/PaymentGateway` utilise un try-with-resources pour le prouver. Le prix : **un vrai `catch (Throwable t)` écrit à la main passe la règle. C'est un faux négatif assumé** (voir les limites plus bas).
 
 ### 4. Brancher la règle dans la boucle de l'agent et dans la CI
 
@@ -60,32 +62,41 @@ Exemple de faux positif évité : R01 interdit `catch (Exception)` et `catch (Ru
 
 | Événement | Quand | Effet d'un `exit 2` |
 |---|---|---|
-| `PostToolUse`, matcher `Edit\|Write` | après chaque fichier `.java` écrit ou modifié | Claude lit les violations (stderr) et corrige tout de suite |
+| `PostToolUse`, matcher `Edit\|Write` | après un fichier `.java` écrit ou modifié | Claude lit les violations (stderr) et corrige tout de suite |
 | `Stop` | quand l'agent veut rendre la main | Claude ne peut pas s'arrêter tant que les règles cassent |
+
+Le matcher ne contient pas `MultiEdit` : la doc officielle des hooks ne cite pas d'outil de ce nom (vérifié le 16/11/2026), seulement `Edit|Write` dans ses exemples. Chaque hook a `"timeout": 180` (secondes ; 600 par défaut d'après la doc).
 
 ```json
 {
   "hooks": {
     "PostToolUse": [
       { "matcher": "Edit|Write",
-        "hooks": [ { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh" } ] }
+        "hooks": [ { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh", "timeout": 180 } ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh" } ] }
+      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/archunit-gate.sh", "timeout": 180 } ] }
     ]
   }
 }
 ```
 
-Le script lit le JSON reçu sur l'entrée standard (`tool_input.file_path`, `stop_hook_active`), ne fait rien si le fichier n'est pas du Java, puis lance :
+Le script lit le JSON reçu sur l'entrée standard (`tool_input.file_path`), ne fait rien si le fichier n'est pas du Java, ni si les fichiers Java n'ont pas changé depuis le dernier passage réussi (empreinte de `git diff`, gardée dans `.git/archunit-gate.ok`), puis lance :
 
 ```bash
 mvn -q -B test -Dtest='*ArchTest' -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
-Précision honnête : ArchUnit analyse les classes compilées, donc la commande vérifie tout le module, pas seulement le fichier modifié. Elle ne se *déclenche* que sur les fichiers Java modifiés. Sur ce petit projet, c'est rapide ; sur un gros module, le temps reste [à mesurer](#ce-qui-reste-à-mesurer).
+Il distingue deux échecs :
 
-Le hook `Stop` vérifie `stop_hook_active` pour ne pas relancer l'agent en boucle (Claude Code plafonne de toute façon à 8 relances consécutives, d'après la doc).
+- **violation ArchUnit** : `exit 2` avec les violations dédoublonnées ; le message de chaque règle contient la remarque de revue ;
+- **build cassé** (compilation, dépendance absente, autre test) : `exit 2` avec « Build cassé, pas une règle anti-slop » et la sortie Maven tronquée, pour que l'agent ne cherche pas une règle qui n'existe pas.
+
+Si `mvn`, `python3` ou `git` manque, le script sort en `exit 0` avec « gate anti-slop ignoré : mvn absent » : il ne bloque pas l'agent avec une fausse consigne.
+
+Précision honnête : ArchUnit analyse les classes compilées, donc la commande vérifie tout le module, pas seulement le fichier modifié. Sur ce petit projet, c'est rapide ; sur un gros module, le temps reste [à mesurer](#ce-qui-reste-à-mesurer). Pendant un refactor sur plusieurs fichiers, les étapes intermédiaires peuvent casser : `ARCH_GATE_ON_STOP_ONLY=1` ne vérifie qu'au `Stop`.
+
+Au `Stop`, le script revérifie à chaque fois, même quand `stop_hook_active` est vrai : l'agent ne peut pas rendre la main avec une violation. Claude Code plafonne lui-même les relances (8 relances consécutives d'après la doc), puis laisse l'agent s'arrêter : à ce moment, c'est la CI qui bloque.
 
 **Dans la CI** (le filet de sécurité) : `.github/workflows/ci.yml` lance `mvn -B verify`. Toutes les règles et leurs tests tournent dans la phase `test`.
 
@@ -100,21 +111,41 @@ Letsch déconseille les hooks git pre-commit et pre-push (ils ralentissent les c
 | R03 | `Optional.get()` sans test | pas d'appel à `Optional.get()` (utiliser `orElseThrow`) |
 | R04 | `System.out`, `printStackTrace()` | `GeneralCodingRules.NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS` |
 | R05 | `ResponseStatusException` levée par le service | `..domain..` et `..application..` ne dépendent pas du web ni de HTTP |
-| R06 | `@Transactional` sur une méthode privée | méthode `@Transactional` ni privée ni finale |
+| R06 | `@Transactional` sur une méthode privée | méthode `@Transactional` (Spring ou Jakarta) ni privée ni finale |
 | R07 | le contrôleur appelle le repository | `..web..` ne dépend pas de `*Repository` ni de `..infrastructure..` |
-| R08 | `new BigDecimal(0.9)` pour de l'argent | pas d'appel au constructeur `BigDecimal(double)` |
+| R08 | `new BigDecimal(0.9)` pour de l'argent | pas d'appel à `BigDecimal(double)` ni `BigDecimal(double, MathContext)` |
 | R09 | `Date` et `SimpleDateFormat` | `GeneralCodingRules.OLD_DATE_AND_TIME_CLASSES_SHOULD_NOT_BE_USED` |
 | R10 | `throw new RuntimeException("error")` | `GeneralCodingRules.NO_CLASSES_SHOULD_THROW_GENERIC_EXCEPTIONS` |
-| R11 | classe de test jamais lancée par Surefire | une méthode `@Test` vit dans une classe `*Test` |
+| R11 | classe de test jamais lancée par Surefire | une méthode `@Test` vit dans une classe `Test*`, `*Test`, `*Tests` ou `*TestCase` (ou une classe `@Nested` d'une telle classe) |
 
 Le détail (texte de la remarque, mauvais code, bon code) est dans [`AntiSlopRules.java`](src/test/java/io/github/mekkiamiri/ratchet/rules/AntiSlopRules.java), dans [`slopexamples`](src/test/java/io/github/mekkiamiri/slopexamples) et sur la [page du catalogue](https://mekkiamiri.github.io/anti-slop-ratchet/).
 
 ## Limites connues des règles
 
 - **R01** ne voit pas le corps du `catch` (ArchUnit lit le bytecode, pas la source) : elle interdit tout `catch (Exception)`, même s'il relance proprement. C'est voulu : attraper l'exception précise est toujours possible.
+- **R01, faux négatif assumé** : `catch (Throwable t)` n'est pas signalé, parce que javac compile chaque try-with-resources en `catch (Throwable)` et qu'ArchUnit ne distingue pas les deux. Les signaler tous rendrait la règle inutilisable.
 - **R03** signale aussi un `get()` précédé de `isPresent()`. C'est voulu : `orElseThrow` dit la même chose sans le test.
 - **R07** se fie au nom `*Repository` et au paquet `infrastructure` : adaptez-les à votre convention.
-- **R11** exige le suffixe `Test`, plus strict que Surefire (qui lance aussi `Test*`, `*Tests`, `*TestCase`).
+- **R06** reconnaît les annotations par leur nom (`org.springframework.transaction.annotation.Transactional`, `jakarta.transaction.Transactional`) : elle marche sans que Jakarta soit sur le classpath. Le projet d'exemple n'a pas de `@Transactional` (stockage en mémoire, sans gestionnaire de transactions : l'annotation n'y ferait rien) ; R06 est prouvée sur ses exemples.
+- **R05 et R07** ont `allowEmptyShould(true)` : renommer un paquet les ferait passer en silence. `ProjectLayoutArchTest` casse si `..domain..`, `..application..`, `..web..`, `..infrastructure..` ou les classes `*Repository` disparaissent.
+- **R11** suit les motifs par défaut de Surefire (`Test*`, `*Test`, `*Tests`, `*TestCase`) ; si votre `pom.xml` change les `<includes>`, changez la règle.
+
+## Adopter les règles sur du code existant : `FreezingArchRule`
+
+Sur un projet existant, une nouvelle règle trouve souvent des dizaines de violations. Les corriger toutes avant de brancher la règle, c'est la garantie qu'elle ne sera jamais branchée. ArchUnit fournit le cliquet tout fait : [`FreezingArchRule`](https://www.archunit.org/userguide/html/000_Index.html) (dans `com.tngtech.archunit.library.freeze`).
+
+```java
+@ArchTest
+static final ArchRule r08 = FreezingArchRule.freeze(AntiSlopRules.R08_NO_BIGDECIMAL_FROM_DOUBLE);
+```
+
+D'après le guide ArchUnit :
+
+- au premier passage, toutes les violations existantes sont enregistrées dans un magasin en fichiers texte, à versionner avec le code (`freeze.store.default.path` dans `archunit.properties`, et `freeze.store.default.allowStoreCreation=true` pour autoriser sa création) ;
+- ensuite, **seules les nouvelles violations cassent le build** ; l'agent ne peut plus en ajouter ;
+- quand une violation est corrigée, elle est retirée du magasin automatiquement : elle ne peut pas revenir.
+
+C'est exactement le ratchet : le stock de dette ne peut que baisser. Ce dépôt n'en a pas besoin (son code respecte toutes les règles), donc il n'y a pas encore de magasin d'exemple.
 
 ## Ce qui reste à mesurer
 
@@ -129,4 +160,4 @@ Tant que ces chiffres n'existent pas, la page et les slides affichent « à mesu
 ## Pistes (pas encore faites)
 
 - Règles sur le code source plutôt que le bytecode (Error Prone, Checkstyle, PMD) pour ce qu'ArchUnit ne voit pas : le corps des `catch`, les commentaires, les noms locaux.
-- Gel des violations existantes (`FreezingArchRule` d'ArchUnit) pour adopter le ratchet sur un projet existant sans tout corriger d'un coup.
+- Un exemple complet de `FreezingArchRule` sur un projet open source existant, avec son magasin de violations.

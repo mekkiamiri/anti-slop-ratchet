@@ -10,9 +10,15 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-/** Cas d'usage : injection par constructeur, transactions sur des méthodes publiques. */
+/**
+ * Cas d'usage, avec injection par constructeur.
+ *
+ * <p>Pas de {@code @Transactional} ici : le stockage en mémoire n'a pas de gestionnaire de
+ * transactions, l'annotation ne ferait rien. La cohérence vient du verrou optimiste du stockage
+ * (voir {@link OrderRepository#save}). Avec JPA, on mettrait {@code @Transactional} sur ces
+ * méthodes publiques (règle R06).
+ */
 @Service
 public class OrderService {
 
@@ -26,32 +32,26 @@ public class OrderService {
         this.clock = clock;
     }
 
-    @Transactional
     public Order create(String customer, List<OrderLine> lines) {
         Order order = new Order(OrderId.newId(), customer, clock.instant());
         lines.forEach(order::addLine);
-        orders.save(order);
-        LOG.info("Commande {} créée pour {}", order.id().value(), customer);
-        return order;
+        Order saved = orders.save(order);
+        LOG.info("Commande {} créée pour {}", saved.id().value(), customer);
+        return saved;
     }
 
-    @Transactional
     public Order confirm(OrderId id) {
         Order order = get(id);
         order.confirm();
-        orders.save(order);
-        return order;
+        return orders.save(order);
     }
 
-    @Transactional
     public Order cancel(OrderId id) {
         Order order = get(id);
         order.cancel();
-        orders.save(order);
-        return order;
+        return orders.save(order);
     }
 
-    @Transactional(readOnly = true)
     public Order get(OrderId id) {
         return orders.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
     }

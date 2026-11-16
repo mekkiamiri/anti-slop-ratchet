@@ -7,8 +7,12 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.EvaluationResult;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -76,5 +80,25 @@ class AntiSlopRulesTest {
 
     private static JavaClasses importPackage(String suffix) {
         return new ClassFileImporter().importPackages(EXAMPLES + suffix);
+    }
+
+    @Test
+    void everyRuleOfTheCatalogIsTestedHere() {
+        List<Object> declared = Arrays.stream(AntiSlopRules.class.getFields())
+                .filter(f -> Modifier.isStatic(f.getModifiers()) && ArchRule.class.isAssignableFrom(f.getType()))
+                .map(AntiSlopRulesTest::valueOf)
+                .toList();
+        List<Object> tested = rules().map(a -> a.get()[1]).toList();
+
+        assertThat(tested).as("une règle ajoutée à AntiSlopRules doit avoir ses exemples ici")
+                .containsExactlyInAnyOrderElementsOf(declared);
+    }
+
+    private static Object valueOf(Field field) {
+        try {
+            return field.get(null);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Champ illisible : " + field.getName(), e);
+        }
     }
 }
