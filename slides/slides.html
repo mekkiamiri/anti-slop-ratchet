@@ -1,7 +1,8 @@
 <!-- Slides du talk « Contre l'AI slop : un linter Java qui apprend des revues » (Tools-in-Action, 30 min)
      Construire : python3 <kit>/build_deck.py slides/slides.html docs/slides/index.html "Contre l'AI slop"
-     Règle : aucun chiffre de résultat avant mesure ; les emplacements sont marqués « à mesurer ».
-     Plan : 0-4 code presque juste · 4-9:30 guides contre capteurs · 9:30-24 démo · 24-26 chiffres (à mesurer) · 26-30 à emporter -->
+     Règle : aucun chiffre de résultat avant mesure. Avant / après : hypothèse et protocole, chiffres publiés dans le dépôt en janvier 2027.
+     Seul chiffre affiché : le temps de la commande Maven du hook, mesuré le 22/11/2026 (5 passages).
+     Plan : 0-4 code presque juste · 4-9:30 guides contre capteurs · 9:30-21:30 démo · 21:30-22:30 limites · 22:30-26 les chiffres · 26-30 à emporter -->
 
 <!-- 1. Titre (0:00) -->
 <section class="slide">
@@ -93,9 +94,10 @@
 <!-- 8. Section démo (9:30) -->
 <section class="slide">
   {{RULER}}
-  <div class="pad" style="top:320px"><div class="k reveal">Démo</div><h1 class="reveal" style="margin-top:30px">Une règle née <em>d'une erreur</em></h1></div>
+  <div class="pad" style="top:300px"><div class="k reveal">Démo · un projet Spring Boot public</div><h1 class="reveal" style="margin-top:30px">Une règle née <em>d'une erreur</em></h1>
+    <p class="muted reveal" style="margin-top:50px">github.com/mekkiamiri/anti-slop-ratchet · un service de commandes</p></div>
   {{CHROME}}
-  <aside class="notes">Démo live. Plan B : vidéo enregistrée. Terminal + IDE + Claude Code ouverts sur le dépôt anti-slop-ratchet, hooks désactivés au départ.</aside>
+  <aside class="notes">Démo live. Plan B : vidéo à enregistrer avant la conférence (pas encore faite). Terminal + IDE + Claude Code ouverts sur le dépôt anti-slop-ratchet, hooks désactivés au départ. Le projet est public : tout ce que vous voyez est dans le dépôt, vous pouvez le cloner pendant la démo.</aside>
 </section>
 
 <!-- 9. L'erreur (10:00) -->
@@ -199,23 +201,62 @@ Method &lt;…order.domain.Order.discountedTotal()&gt; calls constructor
   <aside class="notes">Sortie produite le 16/11/2026 en ajoutant vraiment discountedTotal() à Order.java ; seuls le texte complet de la remarque et le nom de paquet sont raccourcis. Le numéro de ligne changera en live. On relance la même demande avec le hook actif : l'agent voit la violation et corrige avant de rendre la main. Puis la CI : mvn -B verify.</aside>
 </section>
 
-<!-- 16. Est-ce que ça marche ? (24:00) -->
+<!-- 16. Limites (21:30) -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Est-ce que ça marche ? · mêmes tâches, sans puis avec les règles</div>
-    <table class="m reveal" style="margin-top:40px">
-      <tr><th>Mesure</th><th>Sans règles</th><th>Avec règles</th></tr>
-      <tr><td>Remarques de revue du catalogue</td><td class="n">—</td><td class="n">—</td></tr>
-      <tr><td>Faux positifs des règles</td><td class="n">—</td><td class="n">—</td></tr>
-      <tr><td>Temps ajouté par le hook</td><td class="n">—</td><td class="n">—</td></tr>
-    </table>
-    <div class="todo reveal" style="margin-top:36px">à mesurer · protocole et données brutes dans le dépôt</div>
+    <div class="k reveal">Ce qu'une règle ne voit pas</div>
+    <ul class="steps reveal">
+      <li data-n="01">ArchUnit lit le <em>bytecode</em> : le corps d'un catch lui échappe</li>
+      <li data-n="02">R07 se fie aux <em>noms</em> : *Repository, ..infrastructure..</li>
+      <li data-n="03">Un paquet renommé ? <em>ProjectLayoutArchTest</em> casse</li>
+    </ul>
+    <p class="muted reveal" style="margin-top:40px">Toutes les limites sont écrites dans RATCHET.md.</p>
   </div>
   {{CHROME}}
-  <aside class="notes">Deux minutes, pas plus. Je ne montre aucun chiffre que je n'ai pas mesuré. Données brutes publiées avec les PR.</aside>
+  <aside class="notes">Une règle déterministe a des angles morts, et je préfère les dire. R01 interdit tout catch (Exception), même propre, et laisse passer catch (Throwable). R07 suit une convention de nommage : adaptez-la. Et si un paquet visé disparaît, un test dédié casse au lieu de laisser la règle passer en silence.</aside>
 </section>
 
-<!-- 17. Catalogue 1 / 2 (26:00) -->
+<!-- 17. L'hypothèse (22:30) -->
+<section class="slide">
+  <div class="pad" style="top:230px">
+    <div class="k reveal">Est-ce que ça marche ? · hypothèse, pas résultat</div>
+    <h2 class="reveal" style="margin-top:30px">Les remarques du catalogue <em>disparaissent</em> des PR.<br>Les autres, non.</h2>
+    <p class="muted reveal" style="margin-top:50px">Parce que le hook bloque l'agent avant qu'il rende la main. Il ne voit rien d'autre.</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Je vous donne mon hypothèse, pas un résultat. Je m'attends à ce que les 11 remarques du catalogue ne reviennent plus en revue, et à ce que tout le reste ne bouge pas : les règles ne voient que leur motif. Si la mesure dit autre chose, je le dirai ici.</aside>
+</section>
+
+<!-- 18. Le protocole (23:30) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Le protocole · mêmes tâches, même agent, sans puis avec le hook</div>
+    <table class="m reveal" style="margin-top:40px">
+      <tr><th>Mesure</th><th>Comment</th><th>Je m'attends à</th></tr>
+      <tr><td>Remarques du catalogue</td><td>relevées dans la revue de chaque PR</td><td>presque zéro avec le hook</td></tr>
+      <tr><td>Remarques hors catalogue</td><td>même revue</td><td>pas de changement</td></tr>
+      <tr><td>Faux positifs des règles</td><td>violation contestée en revue</td><td>rares, et listés</td></tr>
+      <tr><td>Temps ajouté par le hook</td><td>chronométré à chaque passage</td><td>quelques secondes</td></tr>
+    </table>
+    <p class="muted reveal" style="margin-top:30px">Données brutes et PR dans mesures/ · publiées en janvier 2027</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Le protocole est écrit à la fin de RATCHET.md. Les tâches : ajouter une fonctionnalité au projet de commandes, confiée au même agent sans puis avec les règles. Les chiffres bruts et les PR seront publiés dans le dépôt avant la conférence ; vous pourrez tout recompter.</aside>
+</section>
+
+<!-- 19. Le coût déjà mesuré (25:00) -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Déjà mesuré · le coût de la commande du hook</div>
+    <div class="readouts reveal" style="margin-top:60px"><div><b>2,7 s</b><span>après un fichier modifié</span></div><div><b>5</b><span>passages</span></div><div><b>61</b><span>fichiers Java</span></div></div>
+    <pre class="code reveal" style="margin-top:50px;font-size:22px">mvn -q -B test -Dtest='*ArchTest' -Dsurefire.failIfNoSpecifiedTests=false</pre>
+    <p class="muted reveal" style="margin-top:20px;font-size:24px">22/11/2026 · ce projet · Apple M4 Pro, Java 25, Maven 3.10, hors ligne</p>
+  </div>
+  {{CHROME}}
+  <aside class="notes">Le seul chiffre que j'ai, et je l'ai mesuré : la commande Maven que lance le hook, après avoir modifié Order.java, prend 2,7 secondes, de 2,70 à 2,78 sur 5 passages. C'est un petit projet : sur un gros module, ce temps sera publié avec les autres mesures. Si c'est trop long pendant un refactor, ARCH_GATE_ON_STOP_ONLY=1 ne vérifie qu'à la fin.</aside>
+</section>
+
+<!-- 20. Catalogue 1 / 2 (26:00) -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">À emporter · 1 / 2 · exceptions, Spring, architecture</div>
@@ -231,7 +272,7 @@ Method &lt;…order.domain.Order.discountedTotal()&gt; calls constructor
   {{CHROME}}
 </section>
 
-<!-- 18. Catalogue 2 / 2 (27:00) -->
+<!-- 21. Catalogue 2 / 2 (27:00) -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">À emporter · 2 / 2 · stockage, types, tests</div>
@@ -247,7 +288,7 @@ Method &lt;…order.domain.Order.discountedTotal()&gt; calls constructor
   {{CHROME}}
 </section>
 
-<!-- 19. FreezingArchRule (27:45) -->
+<!-- 22. FreezingArchRule (27:45) -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Sur du code existant</div>
@@ -259,12 +300,13 @@ static final ArchRule r08 =
       <li data-n="02">Seules les <em>nouvelles</em> cassent le build</li>
       <li data-n="03">Une violation corrigée sort du fichier : <em>elle ne revient pas</em></li>
     </ul>
+    <p class="muted reveal" style="margin-top:30px;font-size:24px">API d'ArchUnit, décrite dans RATCHET.md · ce dépôt n'a pas de dette, donc pas de magasin d'exemple</p>
   </div>
   {{CHROME}}
-  <aside class="notes">FreezingArchRule d'ArchUnit, c'est le cliquet tout fait : le stock de dette ne peut que baisser. Pas besoin de tout corriger avant de brancher une règle. Détails et propriétés dans RATCHET.md.</aside>
+  <aside class="notes">FreezingArchRule d'ArchUnit, c'est le cliquet tout fait : le stock de dette ne peut que baisser. Pas besoin de tout corriger avant de brancher une règle. Je le dis franchement : le projet d'exemple respecte toutes les règles, il n'a donc pas de magasin de violations ; un exemple complet sur un projet open source existant est une piste notée dans RATCHET.md.</aside>
 </section>
 
-<!-- 20. Fin (29:00) -->
+<!-- 23. Fin (29:00) -->
 <section class="slide">
   {{RULER}}
   <div class="pad" style="top:260px">

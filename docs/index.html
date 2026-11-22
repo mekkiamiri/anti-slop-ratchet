@@ -74,10 +74,9 @@ footer{margin-top:60px;color:var(--dim);font-size:12px}
   <div class="readouts">
     <div><b>11</b><span>règles testées</span></div>
     <div><b>11 / 11</b><span>mauvais / bons exemples</span></div>
-    <div><b>—</b><span>remarques de revue avant</span><br><span class="todo">à mesurer</span></div>
-    <div><b>—</b><span>remarques de revue après</span><br><span class="todo">à mesurer</span></div>
+    <div><b>2,7 s</b><span>commande du hook, ce projet</span></div>
   </div>
-  <p class="muted" style="font-size:13px">Le compteur « avant / après » viendra d'une expérience publiée avec ses données brutes (protocole dans RATCHET.md). Aucun chiffre n'est affiché tant qu'il n'est pas mesuré.</p>
+  <p class="muted" style="font-size:13px">2,7 s : commande Maven du hook après un fichier modifié, 5 passages le 22/11/2026 (Apple M4 Pro, Java 25). Remarques de revue avant / après : hypothèse et protocole dans RATCHET.md, mesures publiées avec leurs données brutes en janvier 2027. Aucun chiffre avant / après n'est affiché tant qu'il n'est pas mesuré.</p>
 
   <h2>Le catalogue</h2>
   <div class="controls">
@@ -119,10 +118,10 @@ public class OrderService {
   <h2>État</h2>
   <table>
     <tr><th>Élément</th><th>État</th></tr>
-    <tr><td>Projet Spring Boot de commandes + 11 règles + tests des règles</td><td>tourne (<code>mvn -B verify</code>)</td></tr>
+    <tr><td>Projet Spring Boot public de commandes + 11 règles + tests des règles</td><td>tourne (<code>mvn -B verify</code>)</td></tr>
     <tr><td>Hook Claude Code qui relance les règles après un fichier Java modifié et avant de rendre la main</td><td>écrit et essayé à la main (violation, build cassé, Stop relancé)</td></tr>
-    <tr><td>Adoption sur du code existant (<code>FreezingArchRule</code> d'ArchUnit)</td><td>décrite dans RATCHET.md</td></tr>
-    <tr><td>Remarques de revue avant / après, faux positifs, coût du hook</td><td><span class="todo">à mesurer</span></td></tr>
+    <tr><td>Adoption sur du code existant (<code>FreezingArchRule</code> d'ArchUnit)</td><td>décrite dans RATCHET.md, pas encore de magasin d'exemple</td></tr>
+    <tr><td>Remarques de revue avant / après, faux positifs</td><td>protocole écrit, mesures publiées en janvier 2027</td></tr>
     <tr><td>Règles sur le code source (Error Prone, Checkstyle)</td><td>pas encore fait</td></tr>
   </table>
 

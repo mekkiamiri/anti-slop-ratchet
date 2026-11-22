@@ -94,7 +94,7 @@ Il distingue deux échecs :
 
 Si `mvn`, `python3` ou `git` manque, le script sort en `exit 0` avec « gate anti-slop ignoré : mvn absent » : il ne bloque pas l'agent avec une fausse consigne.
 
-Précision honnête : ArchUnit analyse les classes compilées, donc la commande vérifie tout le module, pas seulement le fichier modifié. Sur ce petit projet, c'est rapide ; sur un gros module, le temps reste [à mesurer](#ce-qui-reste-à-mesurer). Pendant un refactor sur plusieurs fichiers, les étapes intermédiaires peuvent casser : `ARCH_GATE_ON_STOP_ONLY=1` ne vérifie qu'au `Stop`.
+Précision honnête : ArchUnit analyse les classes compilées, donc la commande vérifie tout le module, pas seulement le fichier modifié. Sur ce petit projet (61 fichiers Java), la commande Maven du hook prend 2,7 s après la modification d'un fichier (de 2,70 à 2,78 s sur 5 passages, le 22/11/2026, Apple M4 Pro, Java 25, Maven 3.10 hors ligne) ; sur un gros module, le temps sera publié avec les [autres mesures](#ce-qui-reste-à-mesurer). Pendant un refactor sur plusieurs fichiers, les étapes intermédiaires peuvent casser : `ARCH_GATE_ON_STOP_ONLY=1` ne vérifie qu'au `Stop`.
 
 Au `Stop`, le script revérifie à chaque fois, même quand `stop_hook_active` est vrai : l'agent ne peut pas rendre la main avec une violation. Claude Code plafonne lui-même les relances (8 relances consécutives d'après la doc), puis laisse l'agent s'arrêter : à ce moment, c'est la CI qui bloque.
 
@@ -155,7 +155,7 @@ Le talk promet de **compter** les remarques de revue avant et après. Rien n'est
 2. Pour chaque PR produite : nombre de remarques de revue relevant d'une règle du catalogue, nombre de remarques hors catalogue, faux positifs des règles, temps ajouté par le hook.
 3. Publication des chiffres bruts dans `mesures/` (dossier à créer), avec les PR.
 
-Tant que ces chiffres n'existent pas, la page et les slides affichent « à mesurer ».
+Hypothèse (pas un résultat) : les remarques du catalogue disparaissent des PR, les remarques hors catalogue ne changent pas. Tant que les chiffres n'existent pas, la page et les slides montrent l'hypothèse et ce protocole, sans aucun chiffre avant / après ; publication prévue en janvier 2027. Si la mesure n'est pas concluante, le talk le dit.
 
 ## Pistes (pas encore faites)
 
