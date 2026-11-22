@@ -41,7 +41,7 @@ CONSIGNE_FIN = ("\n\nTravaille seul, sans poser de question. Le projet compile a
                 "(hors ligne). Quand la tâche est faite et que les tests passent, arrête-toi.")
 
 
-def copie_neutre(dest: Path) -> None:
+def copie_neutre(dest: Path, projet: str = "propre") -> None:
     fichiers = subprocess.run(["git", "ls-files", "-z"], cwd=RACINE, capture_output=True, check=True).stdout
     for rel in filter(None, fichiers.decode().split("\0")):
         src = RACINE / rel
@@ -51,6 +51,15 @@ def copie_neutre(dest: Path) -> None:
     for rel in A_RETIRER:
         p = dest / rel
         shutil.rmtree(p) if p.is_dir() else p.unlink(missing_ok=True)
+    if projet == "sale":
+        sale = ICI / "projet-sale"
+        for src in sale.rglob("*.java"):
+            cible = dest / src.relative_to(sale)
+            cible.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, cible)
+        # Les commentaires qui annoncent le sujet du talk sont retirés (l'agent ne doit pas le deviner).
+        app = dest / "src/main/java/io/github/mekkiamiri/ratchet/ShopApplication.java"
+        app.write_text("\n".join(l for l in app.read_text().splitlines() if "anti-slop" not in l) + "\n")
 
 
 def preparer(dest: Path, condition: str) -> None:
@@ -109,6 +118,8 @@ def main() -> int:
     ap.add_argument("--java-home", default=os.environ.get("BANC_JAVA_HOME"))
     ap.add_argument("--garder", action="store_true", help="garder les copies (pour relire les diffs)")
     ap.add_argument("--essai-a-blanc", action="store_true")
+    ap.add_argument("--projet", choices=["propre", "sale"], default="propre",
+                    help="sale : le service et le contrôleur contiennent déjà 7 erreurs du catalogue (projet-sale/)")
     a = ap.parse_args()
 
     taches = json.loads((ICI / "taches.json").read_text())["taches"]
@@ -128,22 +139,35 @@ def main() -> int:
         faux.chmod(0o755)
         a.agent_cmd, taches, conditions, a.passages = str(faux), taches[:1], ["A"], 1
 
-    sortie = ICI / "resultats" / f"{dt.date.today().isoformat()}{'-essai' if a.essai_a_blanc else ''}.jsonl"
+    suffixe = "-essai" if a.essai_a_blanc else ("-sale" if a.projet == "sale" else "")
+    sortie = ICI / "resultats" / f"{dt.date.today().isoformat()}{suffixe}.jsonl"
+    # Violations déjà présentes avant l'agent (0 pour le projet propre) : on compte ensuite les nouvelles.
+    base_dir = racine_runs / "ligne-de-base"
+    base_dir.mkdir()
+    copie_neutre(base_dir, a.projet)
+    preparer(base_dir, "A")
+    depart = compteur.compter(base_dir, RACINE, a.java_home)["violations"]
+    print(f"violations au départ ({a.projet}) : {depart}")
+    shutil.rmtree(base_dir, ignore_errors=True)
     sortie.parent.mkdir(exist_ok=True)
     for t in taches:
         for c in conditions:
             for n in range(1, a.passages + 1):
                 dest = racine_runs / f"{t['id']}-{c}-{n}"
                 dest.mkdir()
-                copie_neutre(dest)
+                copie_neutre(dest, a.projet)
                 preparer(dest, c)
                 agent = lancer_agent(dest, t["texte"], a.agent_cmd, a.modele, env)
                 mesure = compteur.compter(dest, RACINE, a.java_home)
-                ligne = {"date": dt.datetime.now().isoformat(timespec="seconds"), "tache": t["id"], "zone": t["zone"],
-                         "condition": c, "passage": n, "agent": agent, **mesure}
+                nouvelles = {r: n_ - depart.get(r, 0) for r, n_ in mesure["violations"].items()
+                             if n_ - depart.get(r, 0) > 0}
+                ligne = {"date": dt.datetime.now().isoformat(timespec="seconds"), "projet": a.projet, "tache": t["id"],
+                         "zone": t["zone"], "condition": c, "passage": n, "agent": agent, **mesure,
+                         "violations_depart": depart, "violations_nouvelles": nouvelles,
+                         "violations_nouvelles_total": sum(nouvelles.values())}
                 with sortie.open("a") as f:
                     f.write(json.dumps(ligne, ensure_ascii=False) + "\n")
-                print(f"{t['id']} {c} #{n} : violations={mesure['violations']} "
+                print(f"{t['id']} {c} #{n} : violations={mesure['violations']} nouvelles={nouvelles} "
                       f"tests_ok={mesure['tests_fonctionnels_ok']} agent_ok={agent['ok']} {agent.get('duree_s')} s")
                 if not a.garder:
                     shutil.rmtree(dest, ignore_errors=True)
