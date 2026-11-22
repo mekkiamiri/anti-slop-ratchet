@@ -87,6 +87,11 @@ def lancer_agent(dest: Path, texte: str, agent_cmd: str, modele: str | None, env
         sortie = json.loads(p.stdout)
     except json.JSONDecodeError:
         return {"ok": False, "code": p.returncode, "duree_s": duree, "erreur": (p.stderr or p.stdout)[-500:]}
+    tokens = sortie.get("usage") or {}
+    if sortie.get("is_error") and not tokens.get("output_tokens"):
+        # Erreur d'accès au modèle (identifiants expirés, quota) : pas un résultat, à relancer.
+        return {"ok": False, "invalide": True, "code": p.returncode, "duree_s": duree,
+                "erreur": (sortie.get("result") or "")[:300]}
     return {"ok": not sortie.get("is_error", False), "code": p.returncode, "duree_s": duree,
             "cout_usd": sortie.get("total_cost_usd"), "tours": sortie.get("num_turns"),
             "modeles_servis": sorted((sortie.get("modelUsage") or {}).keys()),
@@ -158,6 +163,10 @@ def main() -> int:
                 copie_neutre(dest, a.projet)
                 preparer(dest, c)
                 agent = lancer_agent(dest, t["texte"], a.agent_cmd, a.modele, env)
+                if agent.get("invalide"):
+                    print(f"{t['id']} {c} #{n} : INVALIDE (accès au modèle) : {agent['erreur'][:120]}")
+                    shutil.rmtree(dest, ignore_errors=True)
+                    continue
                 mesure = compteur.compter(dest, RACINE, a.java_home)
                 nouvelles = {r: n_ - depart.get(r, 0) for r, n_ in mesure["violations"].items()
                              if n_ - depart.get(r, 0) > 0}
