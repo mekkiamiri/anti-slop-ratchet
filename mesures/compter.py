@@ -20,8 +20,6 @@ REGLES_DIR = Path("src/test/java/io/github/mekkiamiri/ratchet/rules")
 # Fichiers remis depuis le projet d'origine avant de compter.
 FICHIERS_REGLES = ["AntiSlopRules.java", "ProjectArchTest.java", "TestSourcesArchTest.java"]
 TESTS_ARCHI = "ProjectArchTest,TestSourcesArchTest"
-EXCLUS_FONCTIONNELS = ",".join("!" + t for t in [
-    "ProjectArchTest", "TestSourcesArchTest", "ProjectLayoutArchTest", "AntiSlopRulesTest", "CatalogPageTest"])
 
 MOTIF_VIOLATION = re.compile(r"Rule 'R(\d{2})\b.*?' was violated \((\d+) times?\)", re.S)
 
@@ -77,7 +75,11 @@ def compter(copie: Path, origine: Path, java_home: str | None = None) -> dict:
     compile_ok = "COMPILATION ERROR" not in (archi.stdout + archi.stderr)
     violations = violations_depuis_texte(texte)
 
-    fonc = _maven(copie, ["test", f"-Dtest={EXCLUS_FONCTIONNELS}", "-Dsurefire.failIfNoSpecifiedTests=false"], env)
+    # Tests fonctionnels : on retire les règles et les mauvais exemples volontaires du catalogue,
+    # puis Surefire tourne avec ses motifs par défaut (comme en vrai : un test mal nommé ne tourne pas).
+    shutil.rmtree(copie / REGLES_DIR, ignore_errors=True)
+    shutil.rmtree(copie / "src/test/java/io/github/mekkiamiri/slopexamples", ignore_errors=True)
+    fonc = _maven(copie, ["test"], env)
     _, totaux = lire_rapports(copie / "target" / "surefire-reports")
     return {
         "compile": compile_ok,
