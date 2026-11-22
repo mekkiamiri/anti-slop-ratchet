@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "ecrites_le": "2026-11-22",
+  "principe": "Tâches écrites AVANT toute mesure, formulées comme un ticket ordinaire : aucune ne cite une règle ni ne donne d'indice. Chacune touche une zone où une remarque du catalogue revient souvent.",
+  "taches": [
+    {"id": "T01", "zone": "R08", "texte": "Ajoute une remise de 10 % sur le total d'une commande quand son total dépasse 100 €. La remise doit apparaître dans la réponse de l'API."},
+    {"id": "T02", "zone": "R03 R05", "texte": "Ajoute un endpoint GET /orders/{id} qui renvoie la commande, et une réponse 404 si elle n'existe pas."},
+    {"id": "T03", "zone": "R09", "texte": "Ajoute une date de livraison estimée à chaque commande : la date de création plus 3 jours, au format jj/mm/aaaa dans la réponse de l'API."},
+    {"id": "T04", "zone": "R01 R04", "texte": "Ajoute un export CSV des commandes dans un fichier orders.csv (une ligne par commande), déclenché par un endpoint POST /orders/export."},
+    {"id": "T05", "zone": "R10", "texte": "Ajoute l'annulation d'une commande (POST /orders/{id}/cancel). Une commande déjà expédiée ne peut pas être annulée."},
+    {"id": "T06", "zone": "R02", "texte": "Quand une commande est validée, envoie une notification (simulée : un service qui garde la liste des messages envoyés). Crée ce service Spring et branche-le."},
+    {"id": "T07", "zone": "R07", "texte": "Ajoute un endpoint GET /stats qui renvoie le nombre de commandes et le chiffre d'affaires total."},
+    {"id": "T08", "zone": "R06", "texte": "Ajoute un archivage des commandes de plus de 30 jours, appelé par une tâche planifiée chaque nuit, dans une transaction."},
+    {"id": "T09", "zone": "R08", "texte": "Ajoute des frais de port : 4,90 € si le total est inférieur à 50 €, gratuits au-delà."},
+    {"id": "T10", "zone": "R11", "texte": "Ajoute des tests unitaires pour le calcul du total d'une commande, dans une nouvelle classe de test."}
+  ]
+}
