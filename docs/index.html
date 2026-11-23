@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contre l'AI slop : un linter Java qui apprend des revues · Mekki Amiri</title>
-<meta name="description" content="Catalogue de règles ArchUnit nées de remarques de revue récurrentes sur du code écrit par des agents.">
+<title>Mon agent ne fait plus d'AI slop : à quoi bon mes règles ? · Mekki Amiri</title>
+<meta name="description" content="180 passages mesurés : l'agent ne fait pas les erreurs du catalogue ; les règles ArchUnit branchées lui font rembourser la dette existante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -61,22 +61,35 @@ footer{margin-top:60px;color:var(--dim);font-size:12px}
 </head>
 <body>
 <main>
-  <div class="k">Devoxx France 2027 · Tools-in-Action · v0</div>
-  <h1>Contre l'AI slop :<br>un linter Java qui <em>apprend des revues</em></h1>
-  <p class="lead">L'agent écrit du code qui compile, passe les tests et semble moderne. La revue trouve un anti-pattern. On le dit à l'agent ; il en introduit un autre. <strong>Et si chaque remarque de revue qui revient devenait une règle qui casse le build ?</strong></p>
-  <p class="lead muted">Le prompt suggère, la règle s'impose. Ci-dessous : 11 règles ArchUnit, chacune née d'une remarque de revue, avec le mauvais code, le bon code et la règle. Toutes tournent et sont testées dans le dépôt.</p>
+  <div class="k">Devoxx France 2027 · Tools-in-Action</div>
+  <h1>Mon agent ne fait plus d'AI slop :<br><em>à quoi bon mes règles ?</em></h1>
+  <p class="lead">J'avais changé 11 remarques de revue en 11 règles ArchUnit, lancées par un hook après chaque fichier écrit par l'agent. Mon idée : « un prompt se suggère, une règle s'impose », les règles empêchent l'agent de faire du slop. <strong>Je l'ai mesuré sur 180 passages : c'est faux sur ce banc.</strong></p>
+  <p class="lead"><strong>Mon agent ne fait plus ces erreurs. Mes règles servent à autre chose : lui faire rembourser la dette.</strong></p>
   <div class="links">
     <a href="https://github.com/mekkiamiri/anti-slop-ratchet">Le dépôt</a>
+    <a href="https://github.com/mekkiamiri/anti-slop-ratchet/tree/main/mesures">Les mesures et leurs données brutes</a>
     <a href="https://github.com/mekkiamiri/anti-slop-ratchet/blob/main/RATCHET.md">La méthode (RATCHET.md)</a>
     <a href="slides/">Les slides</a>
   </div>
 
   <div class="readouts">
-    <div><b>11</b><span>règles testées</span></div>
-    <div><b>11 / 11</b><span>mauvais / bons exemples</span></div>
-    <div><b>2,7 s</b><span>commande du hook, ce projet</span></div>
+    <div><b>0</b><span>erreur ajoutée par l'agent, 180 passages</span></div>
+    <div><b>11 → 0</b><span>dette nettoyée, règles + hook, 30 fois sur 30</span></div>
+    <div><b>+59 %</b><span>coût de ce nettoyage</span></div>
   </div>
-  <p class="muted" style="font-size:13px">2,7 s : commande Maven du hook après un fichier modifié, 5 passages le 22/11/2026 (Apple M4 Pro, Java 25). Remarques de revue avant / après : hypothèse et protocole dans RATCHET.md, mesures publiées avec leurs données brutes en janvier 2027. Aucun chiffre avant / après n'est affiché tant qu'il n'est pas mesuré.</p>
+
+  <h2>Les résultats</h2>
+  <p class="muted">10 tickets ordinaires écrits avant de mesurer · 3 conditions : <strong>A</strong> rien, <strong>B</strong> les 11 remarques écrites dans CLAUDE.md, <strong>C</strong> les règles et le hook · 2 projets : <strong>propre</strong>, et <strong>sale</strong> (le même avec 11 erreurs du catalogue déjà présentes) · 3 passages par cas · comptage automatique des violations et des tests. 22/11/2026, modèle servi : Sonnet 5.5.</p>
+  <table>
+    <tr><th>Projet</th><th>Condition</th><th>Nouvelles erreurs</th><th>Erreurs à la fin</th><th>Tests verts</th><th>Coût moyen</th><th>Durée</th></tr>
+    <tr><td>propre</td><td>A rien</td><td>0</td><td>0</td><td>30/30</td><td>0,144 $</td><td>38 s</td></tr>
+    <tr><td>propre</td><td>B consignes</td><td>0</td><td>0</td><td>30/30</td><td>0,140 $</td><td>37 s</td></tr>
+    <tr><td>propre</td><td>C règles + hook</td><td>0</td><td>0</td><td>30/30</td><td>0,183 $</td><td>59 s</td></tr>
+    <tr><td>sale (11 au départ)</td><td>A rien</td><td>0</td><td>11</td><td>30/30</td><td>0,163 $</td><td>46 s</td></tr>
+    <tr><td>sale</td><td>B consignes</td><td>0</td><td>10,2</td><td>30/30</td><td>0,156 $</td><td>40 s</td></tr>
+    <tr><td>sale</td><td>C règles + hook</td><td>0</td><td><em>0 (30 fois sur 30)</em></td><td>30/30</td><td>0,259 $</td><td>87 s</td></tr>
+  </table>
+  <p class="muted" style="font-size:13px">Ce que ça dit : l'agent ne fait aucune des 11 erreurs, même sur un projet qui en contient déjà ; les consignes écrites ne nettoient presque rien ; les règles branchées font nettoyer toute la dette, tests verts, pour +59 % de coût et ×1,9 de temps. Sur un vrai legacy (des milliers de violations), il faut choisir : geler l'existant (<code>FreezingArchRule</code>) ou le rembourser. Limites : un seul modèle, un petit projet (414 lignes), réussite = « compile et tests verts ». Détails : <a href="https://github.com/mekkiamiri/anti-slop-ratchet/blob/main/mesures/README.md">mesures/README.md</a>.</p>
 
   <h2>Le catalogue</h2>
   <div class="controls">
@@ -119,9 +132,10 @@ public class OrderService {
   <table>
     <tr><th>Élément</th><th>État</th></tr>
     <tr><td>Projet Spring Boot public de commandes + 11 règles + tests des règles</td><td>tourne (<code>mvn -B verify</code>)</td></tr>
-    <tr><td>Hook Claude Code qui relance les règles après un fichier Java modifié et avant de rendre la main</td><td>écrit et essayé à la main (violation, build cassé, Stop relancé)</td></tr>
+    <tr><td>Hook Claude Code qui relance les règles après un fichier Java modifié et avant de rendre la main</td><td>tourne : utilisé dans les 60 passages « règles + hook » de la mesure</td></tr>
     <tr><td>Adoption sur du code existant (<code>FreezingArchRule</code> d'ArchUnit)</td><td>décrite dans RATCHET.md, pas encore de magasin d'exemple</td></tr>
-    <tr><td>Remarques de revue avant / après, faux positifs</td><td>protocole écrit, mesures publiées en janvier 2027</td></tr>
+    <tr><td>Mesure : l'agent avec ou sans règles, sur un projet propre et un projet sale</td><td>fait : 180 passages, données brutes dans <code>mesures/</code></td></tr>
+    <tr><td>Mesure avec d'autres modèles et sur un gros projet</td><td>pas fait</td></tr>
     <tr><td>Règles sur le code source (Error Prone, Checkstyle)</td><td>pas encore fait</td></tr>
   </table>
 

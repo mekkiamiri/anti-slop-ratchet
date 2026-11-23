@@ -40,4 +40,6 @@ Ce que ça dit :
 
 Contrôles : le compteur détecte une violation injectée à la main dans une copie produite par l'agent (R08 = 1) ; 49 passages ratés pour cause d'accès au modèle (identifiants expirés, coupure du proxy) ont été écartés et relancés (`resultats/2026-11-22-sale-invalides.jsonl`).
 
+Passages de démo (hors campagne, non comptés ci-dessus) : `resultats/demo-2026-11-23.jsonl`, deux passages relancés le 23/11/2026 avec `--garder` pour montrer de vrais diffs dans les slides (propre T01 condition A, sale T06 condition C).
+
 Limites : un seul modèle (le seul servi sur le poste de mesure) ; un petit projet (414 lignes) ; la réussite fonctionnelle de chaque tâche n'est vérifiée que par « compile et tests verts » ; les commentaires du projet propre énoncent certaines règles (biais possible, absent du projet sale).

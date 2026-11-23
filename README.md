@@ -1,12 +1,26 @@
 # anti-slop-ratchet
 
-**Chaque remarque de revue qui revient sur du code écrit par un agent devient une règle ArchUnit testée, branchée dans la boucle de l'agent et dans la CI.**
+**Mon agent ne fait plus d'AI slop. Mes règles servent à autre chose : lui faire rembourser la dette.**
 
-Dépôt de démo du talk « Contre l'AI slop : un linter Java qui apprend des revues » (Tools-in-Action, 30 min, proposé à Devoxx France 2027).
+Dépôt de démo du talk « Mon agent ne fait plus d'AI slop : à quoi bon mes règles ? » (Tools-in-Action, 30 min, proposé à Devoxx France 2027). J'avais changé 11 remarques de revue en 11 règles ArchUnit branchées dans la boucle de l'agent, pour l'empêcher de faire du slop. Mesuré sur 180 passages, l'agent ne fait pas ces erreurs, même sans règles ; les règles branchées, elles, lui font nettoyer la dette existante. Résultats complets : [mesures/README.md](mesures/README.md).
 
 - Page du catalogue (filtrable, avec un essai en direct) : https://mekkiamiri.github.io/anti-slop-ratchet/
 - Slides : https://mekkiamiri.github.io/anti-slop-ratchet/slides/
 - La méthode, le prompt type et le branchement du hook : [RATCHET.md](RATCHET.md)
+- Le banc de mesure (tickets, projet sale, compteur, données brutes) : [mesures/](mesures/)
+
+## Ce qui a été mesuré (22/11/2026, 180 passages, modèle servi : Sonnet 5.5)
+
+| Projet | Condition | Nouvelles erreurs | Erreurs à la fin | Tests verts | Coût moyen | Durée |
+|---|---|---|---|---|---|---|
+| propre | A rien | 0 | 0 | 30/30 | 0,144 $ | 38 s |
+| propre | B consignes (CLAUDE.md) | 0 | 0 | 30/30 | 0,140 $ | 37 s |
+| propre | C règles + hook | 0 | 0 | 30/30 | 0,183 $ | 59 s |
+| sale (11 erreurs au départ) | A rien | 0 | 11 | 30/30 | 0,163 $ | 46 s |
+| sale | B consignes | 0 | 10,2 | 30/30 | 0,156 $ | 40 s |
+| sale | C règles + hook | 0 | **0 (30 fois sur 30)** | 30/30 | 0,259 $ | 87 s |
+
+Limites : un seul modèle, un petit projet (414 lignes), réussite = « compile et tests verts ».
 
 ## Ce qui tourne
 
@@ -33,14 +47,16 @@ Prérequis : Java 21 et Maven. Seulement les règles : `mvn -q test -Dtest='*Arc
 | Projet Spring Boot public d'exemple | tourne, testé |
 | 11 règles ArchUnit, 3 tests par règle + 1 test de cohérence du catalogue | tourne |
 | Page de cohérence (chaque règle documentée sur la page et dans RATCHET.md) | tourne (`CatalogPageTest`) |
-| Hook Claude Code `PostToolUse` + `Stop` | écrit, essayé à la main avec des entrées simulées (projet propre, violation, build cassé, Stop relancé) ; pas encore en session réelle filmée |
-| Remarques de revue avant / après, faux positifs | protocole écrit (RATCHET.md), mesures publiées en janvier 2027 |
-| Coût en temps de la commande du hook | 2,7 s sur ce projet après un fichier modifié (5 passages, 22/11/2026) ; gros module : publié avec les autres mesures |
+| Hook Claude Code `PostToolUse` + `Stop` | tourne : utilisé dans les 60 passages « règles + hook » de la mesure ; pas encore de session filmée |
+| Mesure : l'agent avec ou sans règles, projet propre et projet sale | fait, 180 passages ([mesures/README.md](mesures/README.md)) |
+| Mesure avec d'autres modèles, sur un gros projet | pas fait |
+| Faux positifs des règles en revue réelle | pas mesuré |
+| Coût en temps de la commande du hook | 2,7 s sur ce projet après un fichier modifié (5 passages, 22/11/2026) ; gros module : pas mesuré |
 | Règles sur le code source (Error Prone, Checkstyle) | pas fait |
 | Adoption sur du code existant avec `FreezingArchRule` | décrite dans RATCHET.md, pas d'exemple dans ce dépôt |
 | Vidéo de secours de la démo | pas faite |
 
-Aucun chiffre de résultat n'est publié tant qu'il n'est pas mesuré.
+Chaque chiffre publié ici vient des données brutes de `mesures/resultats/`.
 
 ## Sources
 

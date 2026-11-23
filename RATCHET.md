@@ -147,15 +147,17 @@ D'après le guide ArchUnit :
 
 C'est exactement le ratchet : le stock de dette ne peut que baisser. Ce dépôt n'en a pas besoin (son code respecte toutes les règles), donc il n'y a pas encore de magasin d'exemple.
 
-## Ce qui reste à mesurer
+## Ce qui a été mesuré
 
-Le talk promet de **compter** les remarques de revue avant et après. Rien n'est encore mesuré. Protocole prévu :
+L'idée de départ était : « un prompt se suggère, une règle s'impose » ; les règles empêchent l'agent de faire du slop. Mesuré le 22/11/2026 sur 180 passages (10 tickets ordinaires, 3 conditions : rien, consignes écrites dans `CLAUDE.md`, règles + hook ; 2 projets : propre et sale ; 3 passages ; modèle servi : Sonnet 5.5), **cette idée est réfutée sur ce banc** :
 
-1. Une même liste de tâches (ajouter une fonctionnalité au projet de commandes), confiée à un agent **sans** les règles puis **avec** les règles branchées dans le hook.
-2. Pour chaque PR produite : nombre de remarques de revue relevant d'une règle du catalogue, nombre de remarques hors catalogue, faux positifs des règles, temps ajouté par le hook.
-3. Publication des chiffres bruts dans `mesures/` (dossier à créer), avec les PR.
+1. l'agent n'ajoute **aucune** des 11 erreurs du catalogue, même sans règles ni consignes, même sur un projet qui en contient déjà 11 ;
+2. les consignes écrites ne font presque rien nettoyer (11 → 10,2 erreurs en moyenne) ;
+3. les règles branchées dans le hook font nettoyer **toute** la dette existante, 30 fois sur 30, tests verts, pour +59 % de coût et ×1,9 de temps.
 
-Hypothèse (pas un résultat) : les remarques du catalogue disparaissent des PR, les remarques hors catalogue ne changent pas. Tant que les chiffres n'existent pas, la page et les slides montrent l'hypothèse et ce protocole, sans aucun chiffre avant / après ; publication prévue en janvier 2027. Si la mesure n'est pas concluante, le talk le dit.
+Les règles ne servent donc pas ici de garde-fou contre l'agent, mais de levier pour rembourser la dette. Sur un vrai legacy, c'est le choix « geler ou rembourser » (`FreezingArchRule` ci-dessus).
+
+Protocole, tableau complet, contrôles et limites (un seul modèle, petit projet, réussite = compile et tests verts) : [mesures/README.md](mesures/README.md). Pas encore mesuré : les remarques de revue humaine avant / après sur de vraies PR, les faux positifs des règles en revue réelle, d'autres modèles, un gros projet.
 
 ## Pistes (pas encore faites)
 
