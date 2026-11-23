@@ -1,0 +1,56 @@
+{
+ "propre-A": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 0,
+  "propres": 30,
+  "tests": 30,
+  "cout": 0.144,
+  "duree": 38
+ },
+ "propre-B": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 0,
+  "propres": 30,
+  "tests": 30,
+  "cout": 0.14,
+  "duree": 37
+ },
+ "propre-C": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 0,
+  "propres": 30,
+  "tests": 30,
+  "cout": 0.183,
+  "duree": 59
+ },
+ "sale-A": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 11,
+  "propres": 0,
+  "tests": 30,
+  "cout": 0.163,
+  "duree": 46
+ },
+ "sale-B": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 10.2,
+  "propres": 0,
+  "tests": 30,
+  "cout": 0.156,
+  "duree": 40
+ },
+ "sale-C": {
+  "n": 30,
+  "nouvelles": 0,
+  "fin": 0,
+  "propres": 30,
+  "tests": 30,
+  "cout": 0.259,
+  "duree": 87
+ }
+}
