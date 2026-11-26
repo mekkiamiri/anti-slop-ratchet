@@ -1,0 +1,256 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderExportService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderExportService.java
+new file mode 100644
+index 0000000..b23f7f4
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderExportService.java
+@@ -0,0 +1,72 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import io.github.mekkiamiri.ratchet.order.domain.Order;
++import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.Comparator;
++import java.util.List;
++import java.util.stream.Collectors;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.stereotype.Service;
++
++/** Exporte toutes les commandes en CSV : une ligne par commande, le fichier est réécrit à chaque export. */
++@Service
++public class OrderExportService {
++
++    private static final Logger LOG = LoggerFactory.getLogger(OrderExportService.class);
++
++    static final String HEADER = "id,customer,status,createdAt,lines,total";
++
++    /** Un tableur interprète une cellule qui commence par ces caractères comme une formule. */
++    private static final String FORMULA_PREFIXES = "=+-@\t\r";
++
++    public record Result(Path file, int orders) {
++    }
++
++    private final OrderRepository orders;
++    private final Path file;
++
++    public OrderExportService(OrderRepository orders, @Value("${orders.export.path:orders.csv}") Path file) {
++        this.orders = orders;
++        this.file = file;
++    }
++
++    public synchronized Result export() {
++        List<Order> all = orders.findAll().stream()
++                .sorted(Comparator.comparing(Order::createdAt).thenComparing(o -> o.id().value()))
++                .toList();
++        String csv = HEADER + "\r\n" + all.stream().map(OrderExportService::row)
++                .map(line -> line + "\r\n").collect(Collectors.joining());
++        try {
++            Files.writeString(file, csv, StandardCharsets.UTF_8);
++        } catch (IOException e) {
++            throw new UncheckedIOException("Écriture de l'export impossible : " + file, e);
++        }
++        LOG.info("{} commandes exportées vers {}", all.size(), file);
++        return new Result(file, all.size());
++    }
++
++    private static String row(Order order) {
++        return String.join(",",
++                cell(order.id().value()),
++                cell(order.customer()),
++                cell(order.status().name()),
++                cell(order.createdAt().toString()),
++                cell(String.valueOf(order.lines().size())),
++                cell(order.total().toPlainString()));
++    }
++
++    private static String cell(String value) {
++        String safe = !value.isEmpty() && FORMULA_PREFIXES.indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
++        if (safe.indexOf(',') < 0 && safe.indexOf('"') < 0 && safe.indexOf('\n') < 0 && safe.indexOf('\r') < 0) {
++            return safe;
++        }
++        return '"' + safe.replace("\"", "\"\"") + '"';
++    }
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+index 6c04dd7..524fe59 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
++import java.util.List;
+ import java.util.Optional;
+ 
+ /** Port du domaine : le stockage est un détail d'infrastructure. */
+@@ -8,6 +9,9 @@ public interface OrderRepository {
+     /** Renvoie une copie : la modifier ne change rien tant qu'elle n'est pas enregistrée. */
+     Optional<Order> findById(OrderId id);
+ 
++    /** Renvoie des copies de toutes les commandes, sans ordre garanti. */
++    List<Order> findAll();
++
+     /**
+      * Enregistre la commande si elle n'a pas changé depuis sa lecture, et renvoie la version enregistrée.
+      *
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+index 1849154..db4ba31 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+@@ -4,6 +4,7 @@ import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.concurrent.ConcurrentHashMap;
+@@ -23,6 +24,11 @@ public class InMemoryOrderRepository implements OrderRepository {
+         return Optional.ofNullable(orders.get(id)).map(stored -> stored.copyAtVersion(stored.version()));
+     }
+ 
++    @Override
++    public List<Order> findAll() {
++        return orders.values().stream().map(stored -> stored.copyAtVersion(stored.version())).toList();
++    }
++
+     @Override
+     public Order save(Order order) {
+         Order saved = orders.compute(order.id(), (id, stored) -> {
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java
+new file mode 100644
+index 0000000..e925081
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java
+@@ -0,0 +1,4 @@
++package io.github.mekkiamiri.ratchet.order.web;
++
++public record ExportResponse(String file, int orders) {
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+index 1d25255..b1775cf 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import io.github.mekkiamiri.ratchet.order.application.OrderExportService;
+ import io.github.mekkiamiri.ratchet.order.application.OrderService;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
+ public class OrderController {
+ 
+     private final OrderService service;
++    private final OrderExportService exports;
+ 
+-    public OrderController(OrderService service) {
++    public OrderController(OrderService service, OrderExportService exports) {
+         this.service = service;
++        this.exports = exports;
+     }
+ 
+     @PostMapping
+@@ -34,6 +37,12 @@ public class OrderController {
+         return OrderResponse.from(service.create(request.customer(), lines));
+     }
+ 
++    @PostMapping("/export")
++    public ExportResponse export() {
++        OrderExportService.Result result = exports.export();
++        return new ExportResponse(result.file().toString(), result.orders());
++    }
++
+     @GetMapping("/{id}")
+     public OrderResponse get(@PathVariable String id) {
+         return OrderResponse.from(service.get(new OrderId(id)));
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderExportServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderExportServiceTest.java
+new file mode 100644
+index 0000000..8762cc8
+--- /dev/null
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderExportServiceTest.java
+@@ -0,0 +1,52 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import static org.assertj.core.api.Assertions.assertThat;
++
++import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
++import io.github.mekkiamiri.ratchet.order.infrastructure.InMemoryOrderRepository;
++import java.io.IOException;
++import java.math.BigDecimal;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.time.Clock;
++import java.time.Instant;
++import java.time.ZoneOffset;
++import java.util.List;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.io.TempDir;
++
++class OrderExportServiceTest {
++
++    @TempDir
++    Path dir;
++
++    @Test
++    void writesOneLinePerOrderAfterTheHeader() throws IOException {
++        InMemoryOrderRepository repository = new InMemoryOrderRepository();
++        OrderService orders = new OrderService(repository, Clock.fixed(Instant.parse("2026-01-01T10:00:00Z"), ZoneOffset.UTC));
++        orders.create("ada", List.of(new OrderLine("CAFE", 2, new BigDecimal("1.50"))));
++        orders.create("=SUM(A1)", List.of(new OrderLine("THE", 1, new BigDecimal("2.00"))));
++        orders.create("Doe, \"Jane\"", List.of());
++        Path file = dir.resolve("orders.csv");
++
++        OrderExportService.Result result = new OrderExportService(repository, file).export();
++
++        assertThat(result.orders()).isEqualTo(3);
++        List<String> lines = Files.readAllLines(file);
++        assertThat(lines).hasSize(4);
++        assertThat(lines.get(0)).isEqualTo(OrderExportService.HEADER);
++        assertThat(lines).anyMatch(l -> l.contains(",ada,DRAFT,2026-01-01T10:00:00Z,1,3.00"));
++        assertThat(lines).anyMatch(l -> l.contains(",'=SUM(A1),DRAFT,"));
++        assertThat(lines).anyMatch(l -> l.contains(",\"Doe, \"\"Jane\"\"\",DRAFT,2026-01-01T10:00:00Z,0,0"));
++    }
++
++    @Test
++    void anExportWithoutOrdersWritesOnlyTheHeaderAndReplacesThePreviousFile() throws IOException {
++        Path file = dir.resolve("orders.csv");
++        Files.writeString(file, "ancien contenu");
++
++        new OrderExportService(new InMemoryOrderRepository(), file).export();
++
++        assertThat(Files.readAllLines(file)).containsExactly(OrderExportService.HEADER);
++    }
++}
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..49c81b4 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -13,7 +13,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+ import org.springframework.http.MediaType;
+ import org.springframework.test.web.servlet.MockMvc;
+ 
+-@SpringBootTest
++@SpringBootTest(properties = "orders.export.path=target/orders-controller-test.csv")
+ @AutoConfigureMockMvc
+ class OrderControllerTest {
+ 
+@@ -46,6 +46,14 @@ class OrderControllerTest {
+                 .andExpect(status().isBadRequest());
+     }
+ 
++    @Test
++    void exportingOrdersReportsTheFileAndTheCount() throws Exception {
++        mvc.perform(post("/orders/export"))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.file").value("target/orders-controller-test.csv"))
++                .andExpect(jsonPath("$.orders").isNumber());
++    }
++
+     @Test
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());

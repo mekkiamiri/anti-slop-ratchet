@@ -1,0 +1,96 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java
+new file mode 100644
+index 0000000..a6e550c
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java
+@@ -0,0 +1,26 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import java.util.List;
++import java.util.concurrent.CopyOnWriteArrayList;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.stereotype.Service;
++
++/** Envoi de notifications simulé : les messages ne partent nulle part, ils sont seulement gardés en liste. */
++@Service
++public class NotificationService {
++
++    private static final Logger LOG = LoggerFactory.getLogger(NotificationService.class);
++
++    private final List<String> sent = new CopyOnWriteArrayList<>();
++
++    public void send(String recipient, String message) {
++        sent.add(message);
++        LOG.info("Notification pour {} : {}", recipient, message);
++    }
++
++    /** Les messages envoyés, dans l'ordre d'envoi. */
++    public List<String> sentMessages() {
++        return List.copyOf(sent);
++    }
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..87d6671 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -27,9 +27,12 @@ public class OrderService {
+     private final OrderRepository orders;
+     private final Clock clock;
+ 
+-    public OrderService(OrderRepository orders, Clock clock) {
++    private final NotificationService notifications;
++
++    public OrderService(OrderRepository orders, Clock clock, NotificationService notifications) {
+         this.orders = orders;
+         this.clock = clock;
++        this.notifications = notifications;
+     }
+ 
+     public Order create(String customer, List<OrderLine> lines) {
+@@ -43,7 +46,9 @@ public class OrderService {
+     public Order confirm(OrderId id) {
+         Order order = get(id);
+         order.confirm();
+-        return orders.save(order);
++        Order saved = orders.save(order);
++        notifications.send(saved.customer(), "Votre commande " + saved.id().value() + " est confirmée");
++        return saved;
+     }
+ 
+     public Order cancel(OrderId id) {
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..cf3b7e9 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -26,7 +26,29 @@ import org.junit.jupiter.api.Test;
+ class OrderServiceTest {
+ 
+     private final Clock clock = Clock.fixed(Instant.parse("2027-04-14T09:00:00Z"), ZoneOffset.UTC);
+-    private final OrderService service = new OrderService(new InMemoryOrderRepository(), clock);
++    private final NotificationService notifications = new NotificationService();
++    private final OrderService service = new OrderService(new InMemoryOrderRepository(), clock, notifications);
++
++    @Test
++    void confirmingAnOrderSendsOneNotification() {
++        var created = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE)));
++        assertThat(notifications.sentMessages()).isEmpty();
++
++        service.confirm(created.id());
++
++        assertThat(notifications.sentMessages()).hasSize(1);
++        assertThat(notifications.sentMessages().get(0)).contains(created.id().value());
++    }
++
++    @Test
++    void aRejectedConfirmationSendsNothing() {
++        var created = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE)));
++        service.cancel(created.id());
++
++        assertThatThrownBy(() -> service.confirm(created.id())).isInstanceOf(InvalidOrderException.class);
++
++        assertThat(notifications.sentMessages()).isEmpty();
++    }
+ 
+     @Test
+     void createsThenConfirmsAnOrder() {

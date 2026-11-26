@@ -1,0 +1,193 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..bc0b545 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -4,6 +4,7 @@ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
++import io.github.mekkiamiri.ratchet.order.domain.OrderNotifier;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
+ import java.time.Clock;
+ import java.util.List;
+@@ -25,10 +26,12 @@ public class OrderService {
+     private static final Logger LOG = LoggerFactory.getLogger(OrderService.class);
+ 
+     private final OrderRepository orders;
++    private final OrderNotifier notifier;
+     private final Clock clock;
+ 
+-    public OrderService(OrderRepository orders, Clock clock) {
++    public OrderService(OrderRepository orders, OrderNotifier notifier, Clock clock) {
+         this.orders = orders;
++        this.notifier = notifier;
+         this.clock = clock;
+     }
+ 
+@@ -43,7 +46,10 @@ public class OrderService {
+     public Order confirm(OrderId id) {
+         Order order = get(id);
+         order.confirm();
+-        return orders.save(order);
++        Order saved = orders.save(order);
++        // Après l'enregistrement : une confirmation refusée (invalide ou concurrente) ne notifie personne.
++        notifier.orderConfirmed(saved);
++        return saved;
+     }
+ 
+     public Order cancel(OrderId id) {
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderNotifier.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderNotifier.java
+new file mode 100644
+index 0000000..5b4b873
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderNotifier.java
+@@ -0,0 +1,8 @@
++package io.github.mekkiamiri.ratchet.order.domain;
++
++/** Port du domaine : l'envoi des notifications est un détail d'infrastructure. */
++public interface OrderNotifier {
++
++    /** Prévient le client que sa commande, déjà enregistrée, est confirmée. */
++    void orderConfirmed(Order order);
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderNotifier.java b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderNotifier.java
+new file mode 100644
+index 0000000..64d56d2
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderNotifier.java
+@@ -0,0 +1,32 @@
++package io.github.mekkiamiri.ratchet.order.infrastructure;
++
++import io.github.mekkiamiri.ratchet.order.domain.Order;
++import io.github.mekkiamiri.ratchet.order.domain.OrderNotifier;
++import java.util.List;
++import java.util.concurrent.CopyOnWriteArrayList;
++import org.springframework.stereotype.Component;
++
++/**
++ * Envoi simulé : garde la liste des messages au lieu de les envoyer. Remplaçable par un vrai
++ * canal (e-mail, SMS...) sans toucher au domaine.
++ */
++@Component
++public class InMemoryOrderNotifier implements OrderNotifier {
++
++    /** Message envoyé à un destinataire. */
++    public record SentMessage(String recipient, String text) {
++    }
++
++    private final List<SentMessage> sent = new CopyOnWriteArrayList<>();
++
++    @Override
++    public void orderConfirmed(Order order) {
++        sent.add(new SentMessage(order.customer(),
++                "Votre commande " + order.id().value() + " est confirmée (total : " + order.total() + ")"));
++    }
++
++    /** Messages envoyés, dans l'ordre d'envoi. */
++    public List<SentMessage> sentMessages() {
++        return List.copyOf(sent);
++    }
++}
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java b/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
+index eca4b33..d82e7e2 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
+@@ -2,6 +2,7 @@ package io.github.mekkiamiri.ratchet;
+ 
+ import static org.assertj.core.api.Assertions.assertThat;
+ 
++import io.github.mekkiamiri.ratchet.order.infrastructure.InMemoryOrderNotifier;
+ import io.github.mekkiamiri.ratchet.order.web.OrderController;
+ import io.github.mekkiamiri.ratchet.order.web.OrderRequest;
+ import java.math.BigDecimal;
+@@ -14,10 +15,12 @@ import org.springframework.boot.test.context.SpringBootTest;
+ class ShopApplicationTest {
+ 
+     private final OrderController controller;
++    private final InMemoryOrderNotifier notifier;
+ 
+     @Autowired
+-    ShopApplicationTest(OrderController controller) {
++    ShopApplicationTest(OrderController controller, InMemoryOrderNotifier notifier) {
+         this.controller = controller;
++        this.notifier = notifier;
+     }
+ 
+     @Test
+@@ -29,5 +32,8 @@ class ShopApplicationTest {
+ 
+         assertThat(confirmed.status()).isEqualTo("CONFIRMED");
+         assertThat(confirmed.total()).isEqualByComparingTo("3.00");
++        // Le contexte Spring est partagé entre tests : on cherche notre message, sans compter les autres.
++        assertThat(notifier.sentMessages())
++                .anySatisfy(message -> assertThat(message.text()).contains(created.id()));
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..997e063 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -9,6 +9,7 @@ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderStatus;
++import io.github.mekkiamiri.ratchet.order.infrastructure.InMemoryOrderNotifier;
+ import io.github.mekkiamiri.ratchet.order.infrastructure.InMemoryOrderRepository;
+ import java.math.BigDecimal;
+ import java.time.Clock;
+@@ -26,7 +27,8 @@ import org.junit.jupiter.api.Test;
+ class OrderServiceTest {
+ 
+     private final Clock clock = Clock.fixed(Instant.parse("2027-04-14T09:00:00Z"), ZoneOffset.UTC);
+-    private final OrderService service = new OrderService(new InMemoryOrderRepository(), clock);
++    private final InMemoryOrderNotifier notifier = new InMemoryOrderNotifier();
++    private final OrderService service = new OrderService(new InMemoryOrderRepository(), notifier, clock);
+ 
+     @Test
+     void createsThenConfirmsAnOrder() {
+@@ -39,6 +41,37 @@ class OrderServiceTest {
+         assertThat(confirmed.createdAt()).isEqualTo(clock.instant());
+     }
+ 
++    @Test
++    void confirmingAnOrderNotifiesTheCustomer() {
++        var created = service.create("ada", List.of(new OrderLine("CAFE", 2, new BigDecimal("1.50"))));
++        assertThat(notifier.sentMessages()).isEmpty();
++
++        service.confirm(created.id());
++
++        assertThat(notifier.sentMessages()).singleElement().satisfies(message -> {
++            assertThat(message.recipient()).isEqualTo("ada");
++            assertThat(message.text()).contains(created.id().value()).contains("3.00");
++        });
++    }
++
++    @Test
++    void aRefusedConfirmationNotifiesNobody() {
++        var empty = service.create("ada", List.of());
++
++        assertThatThrownBy(() -> service.confirm(empty.id())).isInstanceOf(InvalidOrderException.class);
++
++        assertThat(notifier.sentMessages()).isEmpty();
++    }
++
++    @Test
++    void cancellingAnOrderNotifiesNobody() {
++        var created = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE)));
++
++        service.cancel(created.id());
++
++        assertThat(notifier.sentMessages()).isEmpty();
++    }
++
+     @Test
+     void anUnknownOrderIsABusinessErrorNotAnHttpOne() {
+         assertThatThrownBy(() -> service.get(new OrderId("absente")))
+@@ -68,6 +101,7 @@ class OrderServiceTest {
+ 
+                 assertThat(List.of(first.get(), second.get())).as("tour %d", round).containsOnlyOnce(true);
+             }
++            assertThat(notifier.sentMessages()).as("une notification par commande confirmée").hasSize(200);
+         } finally {
+             pool.shutdownNow();
+         }

@@ -1,0 +1,109 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..0b8e085 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -14,6 +14,9 @@ import java.util.Objects;
+  */
+ public class Order {
+ 
++    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("50.00");
++    private static final BigDecimal SHIPPING_FEE = new BigDecimal("4.90");
++
+     private final OrderId id;
+     private final String customer;
+     private final Instant createdAt;
+@@ -64,10 +67,21 @@ public class Order {
+         status = OrderStatus.CANCELLED;
+     }
+ 
+-    public BigDecimal total() {
++    /** Somme des lignes, hors frais de port. */
++    public BigDecimal subtotal() {
+         return lines.stream().map(OrderLine::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+     }
+ 
++    /** Frais de port : 4,90 € sous 50 € de lignes, gratuits à partir de 50 €. */
++    public BigDecimal shippingFee() {
++        return subtotal().compareTo(FREE_SHIPPING_THRESHOLD) < 0 ? SHIPPING_FEE : BigDecimal.ZERO;
++    }
++
++    /** Total à payer : lignes + frais de port. */
++    public BigDecimal total() {
++        return subtotal().add(shippingFee());
++    }
++
+     public OrderId id() {
+         return id;
+     }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java b/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
+index eca4b33..e6be91a 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java
+@@ -28,6 +28,6 @@ class ShopApplicationTest {
+         var confirmed = controller.confirm(created.id());
+ 
+         assertThat(confirmed.status()).isEqualTo("CONFIRMED");
+-        assertThat(confirmed.total()).isEqualByComparingTo("3.00");
++        assertThat(confirmed.total()).isEqualByComparingTo("7.90");
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..e4834d4 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -35,7 +35,7 @@ class OrderServiceTest {
+         var confirmed = service.confirm(created.id());
+ 
+         assertThat(confirmed.status()).isEqualTo(OrderStatus.CONFIRMED);
+-        assertThat(confirmed.total()).isEqualByComparingTo("3.00");
++        assertThat(confirmed.total()).isEqualByComparingTo("7.90");
+         assertThat(confirmed.createdAt()).isEqualTo(clock.instant());
+     }
+ 
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..9068c4c 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -12,11 +12,27 @@ class OrderTest {
+     private final Order order = new Order(new OrderId("o-1"), "ada", Instant.parse("2027-04-14T09:00:00Z"));
+ 
+     @Test
+-    void totalIsTheExactSumOfTheLines() {
++    void subtotalIsTheExactSumOfTheLines() {
+         order.addLine(new OrderLine("CAFE", 3, new BigDecimal("0.10")));
+         order.addLine(new OrderLine("THE", 1, new BigDecimal("0.20")));
+ 
+-        assertThat(order.total()).isEqualByComparingTo("0.50");
++        assertThat(order.subtotal()).isEqualByComparingTo("0.50");
++    }
++
++    @Test
++    void shippingIsChargedBelowFiftyEuros() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("49.99")));
++
++        assertThat(order.shippingFee()).isEqualByComparingTo("4.90");
++        assertThat(order.total()).isEqualByComparingTo("54.89");
++    }
++
++    @Test
++    void shippingIsFreeFromFiftyEuros() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("50.00")));
++
++        assertThat(order.shippingFee()).isEqualByComparingTo("0");
++        assertThat(order.total()).isEqualByComparingTo("50.00");
+     }
+ 
+     @Test
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..db282b8 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -29,7 +29,7 @@ class OrderControllerTest {
+         mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
+                         .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
+                 .andExpect(status().isCreated())
+-                .andExpect(jsonPath("$.total").value(3.0));
++                .andExpect(jsonPath("$.total").value(7.9));
+     }
+ 
+     @ParameterizedTest(name = "JSON incomplet {0} : 400, pas 500")

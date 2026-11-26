@@ -1,0 +1,131 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..ca6c061 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -2,6 +2,8 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ 
+ import java.math.BigDecimal;
+ import java.time.Instant;
++import java.time.LocalDate;
++import java.time.ZoneOffset;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Objects;
+@@ -14,6 +16,8 @@ import java.util.Objects;
+  */
+ public class Order {
+ 
++    private static final int DELIVERY_DELAY_DAYS = 3;
++
+     private final OrderId id;
+     private final String customer;
+     private final Instant createdAt;
+@@ -80,6 +84,11 @@ public class Order {
+         return createdAt;
+     }
+ 
++    /** Jour de création (calendrier UTC, comme l'horloge de l'application) plus 3 jours. */
++    public LocalDate estimatedDeliveryDate() {
++        return LocalDate.ofInstant(createdAt, ZoneOffset.UTC).plusDays(DELIVERY_DELAY_DAYS);
++    }
++
+     public List<OrderLine> lines() {
+         return List.copyOf(lines);
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+index ce856de..54a8727 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+@@ -2,10 +2,15 @@ package io.github.mekkiamiri.ratchet.order.web;
+ 
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import java.math.BigDecimal;
++import java.time.format.DateTimeFormatter;
+ 
+-public record OrderResponse(String id, String customer, String status, BigDecimal total) {
++public record OrderResponse(String id, String customer, String status, BigDecimal total,
++        String estimatedDeliveryDate) {
++
++    private static final DateTimeFormatter DELIVERY_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/uuuu");
+ 
+     static OrderResponse from(Order order) {
+-        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total());
++        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total(),
++                DELIVERY_DATE_FORMAT.format(order.estimatedDeliveryDate()));
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..7820326 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -5,12 +5,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
+ 
+ import java.math.BigDecimal;
+ import java.time.Instant;
++import java.time.LocalDate;
+ import org.junit.jupiter.api.Test;
+ 
+ class OrderTest {
+ 
+     private final Order order = new Order(new OrderId("o-1"), "ada", Instant.parse("2027-04-14T09:00:00Z"));
+ 
++    @Test
++    void deliveryIsEstimatedThreeDaysAfterCreation() {
++        assertThat(order.estimatedDeliveryDate()).isEqualTo(LocalDate.of(2027, 4, 17));
++    }
++
++    @Test
++    void deliveryEstimateUsesTheUtcDayAndCrossesMonthEnds() {
++        Order lateOrder = new Order(new OrderId("o-2"), "ada", Instant.parse("2027-02-26T23:59:59Z"));
++
++        assertThat(lateOrder.estimatedDeliveryDate()).isEqualTo(LocalDate.of(2027, 3, 1));
++    }
++
+     @Test
+     void totalIsTheExactSumOfTheLines() {
+         order.addLine(new OrderLine("CAFE", 3, new BigDecimal("0.10")));
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..587f402 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import static org.hamcrest.Matchers.matchesPattern;
+ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+@@ -29,7 +30,8 @@ class OrderControllerTest {
+         mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
+                         .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
+                 .andExpect(status().isCreated())
+-                .andExpect(jsonPath("$.total").value(3.0));
++                .andExpect(jsonPath("$.total").value(3.0))
++                .andExpect(jsonPath("$.estimatedDeliveryDate").value(matchesPattern("\\d{2}/\\d{2}/\\d{4}")));
+     }
+ 
+     @ParameterizedTest(name = "JSON incomplet {0} : 400, pas 500")
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderResponseTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderResponseTest.java
+new file mode 100644
+index 0000000..02dcca0
+--- /dev/null
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderResponseTest.java
+@@ -0,0 +1,18 @@
++package io.github.mekkiamiri.ratchet.order.web;
++
++import static org.assertj.core.api.Assertions.assertThat;
++
++import io.github.mekkiamiri.ratchet.order.domain.Order;
++import io.github.mekkiamiri.ratchet.order.domain.OrderId;
++import java.time.Instant;
++import org.junit.jupiter.api.Test;
++
++class OrderResponseTest {
++
++    @Test
++    void estimatedDeliveryDateIsFormattedDayMonthYear() {
++        Order order = new Order(new OrderId("o-1"), "ada", Instant.parse("2027-01-02T10:00:00Z"));
++
++        assertThat(OrderResponse.from(order).estimatedDeliveryDate()).isEqualTo("05/01/2027");
++    }
++}

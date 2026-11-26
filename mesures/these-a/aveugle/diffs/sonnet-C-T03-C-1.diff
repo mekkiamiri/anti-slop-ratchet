@@ -1,0 +1,117 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..ba985a6 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -2,6 +2,8 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ 
+ import java.math.BigDecimal;
+ import java.time.Instant;
++import java.time.LocalDate;
++import java.time.ZoneOffset;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Objects;
+@@ -68,6 +70,11 @@ public class Order {
+         return lines.stream().map(OrderLine::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+     }
+ 
++    /** Date de livraison estimée : jour de création (UTC) plus trois jours. */
++    public LocalDate estimatedDeliveryDate() {
++        return createdAt.atOffset(ZoneOffset.UTC).toLocalDate().plusDays(3);
++    }
++
+     public OrderId id() {
+         return id;
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+index ce856de..1f85a0d 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+@@ -2,10 +2,15 @@ package io.github.mekkiamiri.ratchet.order.web;
+ 
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import java.math.BigDecimal;
++import java.time.format.DateTimeFormatter;
+ 
+-public record OrderResponse(String id, String customer, String status, BigDecimal total) {
++public record OrderResponse(String id, String customer, String status, BigDecimal total,
++        String estimatedDeliveryDate) {
++
++    private static final DateTimeFormatter DELIVERY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+ 
+     static OrderResponse from(Order order) {
+-        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total());
++        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total(),
++                order.estimatedDeliveryDate().format(DELIVERY_FORMAT));
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..dbb7ca6 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
+ 
+ import java.math.BigDecimal;
+ import java.time.Instant;
++import java.time.LocalDate;
+ import org.junit.jupiter.api.Test;
+ 
+ class OrderTest {
+@@ -34,6 +35,18 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class);
+     }
+ 
++    @Test
++    void deliveryIsEstimatedThreeDaysAfterCreation() {
++        assertThat(order.estimatedDeliveryDate()).isEqualTo(LocalDate.of(2027, 4, 17));
++    }
++
++    @Test
++    void deliveryEstimateCrossesMonthBoundaries() {
++        Order lateMonth = new Order(new OrderId("o-2"), "ada", Instant.parse("2027-04-29T23:30:00Z"));
++
++        assertThat(lateMonth.estimatedDeliveryDate()).isEqualTo(LocalDate.of(2027, 5, 2));
++    }
++
+     @Test
+     void aLineNeedsAPositiveQuantity() {
+         assertThatThrownBy(() -> new OrderLine("CAFE", 0, BigDecimal.ONE))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..d097317 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -4,6 +4,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+ 
++import java.time.Clock;
++import java.time.LocalDate;
++import java.time.format.DateTimeFormatter;
+ import org.junit.jupiter.params.ParameterizedTest;
+ import org.junit.jupiter.params.provider.ValueSource;
+ import org.junit.jupiter.api.Test;
+@@ -18,10 +21,12 @@ import org.springframework.test.web.servlet.MockMvc;
+ class OrderControllerTest {
+ 
+     private final MockMvc mvc;
++    private final Clock clock;
+ 
+     @Autowired
+-    OrderControllerTest(MockMvc mvc) {
++    OrderControllerTest(MockMvc mvc, Clock clock) {
+         this.mvc = mvc;
++        this.clock = clock;
+     }
+ 
+     @Test
+@@ -29,7 +34,9 @@ class OrderControllerTest {
+         mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
+                         .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
+                 .andExpect(status().isCreated())
+-                .andExpect(jsonPath("$.total").value(3.0));
++                .andExpect(jsonPath("$.total").value(3.0))
++                .andExpect(jsonPath("$.estimatedDeliveryDate")
++                        .value(LocalDate.now(clock).plusDays(3).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+     }
+ 
+     @ParameterizedTest(name = "JSON incomplet {0} : 400, pas 500")

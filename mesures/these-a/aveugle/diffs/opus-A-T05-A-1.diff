@@ -1,0 +1,203 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..d963a85 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -46,6 +46,12 @@ public class OrderService {
+         return orders.save(order);
+     }
+ 
++    public Order ship(OrderId id) {
++        Order order = get(id);
++        order.ship();
++        return orders.save(order);
++    }
++
+     public Order cancel(OrderId id) {
+         Order order = get(id);
+         order.cancel();
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..d97c1dd 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -7,7 +7,8 @@ import java.util.List;
+ import java.util.Objects;
+ 
+ /**
+- * Agrégat commande : on ajoute des lignes tant qu'elle est en brouillon, puis on la confirme.
++ * Agrégat commande : on ajoute des lignes tant qu'elle est en brouillon, puis on la confirme, puis
++ * on l'expédie. Elle peut être annulée à tout moment avant l'expédition.
+  *
+  * <p>{@code version} sert au verrou optimiste : le stockage refuse d'écrire une commande modifiée
+  * depuis sa lecture (deux confirmations concurrentes ne peuvent pas réussir toutes les deux).
+@@ -57,10 +58,20 @@ public class Order {
+         status = OrderStatus.CONFIRMED;
+     }
+ 
++    public void ship() {
++        if (status != OrderStatus.CONFIRMED) {
++            throw new InvalidOrderException("Seule une commande confirmée peut être expédiée (statut : " + status + ")");
++        }
++        status = OrderStatus.SHIPPED;
++    }
++
+     public void cancel() {
+         if (status == OrderStatus.CANCELLED) {
+             throw new InvalidOrderException("Commande déjà annulée");
+         }
++        if (status == OrderStatus.SHIPPED) {
++            throw new InvalidOrderException("Une commande expédiée ne peut pas être annulée");
++        }
+         status = OrderStatus.CANCELLED;
+     }
+ 
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+index d9e659a..8421169 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+@@ -3,5 +3,6 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ public enum OrderStatus {
+     DRAFT,
+     CONFIRMED,
++    SHIPPED,
+     CANCELLED
+ }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+index 1d25255..3947674 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+@@ -44,6 +44,11 @@ public class OrderController {
+         return OrderResponse.from(service.confirm(new OrderId(id)));
+     }
+ 
++    @PostMapping("/{id}/ship")
++    public OrderResponse ship(@PathVariable String id) {
++        return OrderResponse.from(service.ship(new OrderId(id)));
++    }
++
+     @PostMapping("/{id}/cancel")
+     public OrderResponse cancel(@PathVariable String id) {
+         return OrderResponse.from(service.cancel(new OrderId(id)));
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..12050b2 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -39,6 +39,25 @@ class OrderServiceTest {
+         assertThat(confirmed.createdAt()).isEqualTo(clock.instant());
+     }
+ 
++    @Test
++    void cancellingIsPersisted() {
++        OrderId id = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE))).id();
++
++        service.cancel(id);
++
++        assertThat(service.get(id).status()).isEqualTo(OrderStatus.CANCELLED);
++    }
++
++    @Test
++    void aShippedOrderStaysShippedWhenCancellationIsRefused() {
++        OrderId id = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE))).id();
++        service.confirm(id);
++        service.ship(id);
++
++        assertThatThrownBy(() -> service.cancel(id)).isInstanceOf(InvalidOrderException.class);
++        assertThat(service.get(id).status()).isEqualTo(OrderStatus.SHIPPED);
++    }
++
+     @Test
+     void anUnknownOrderIsABusinessErrorNotAnHttpOne() {
+         assertThatThrownBy(() -> service.get(new OrderId("absente")))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..6712ed5 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -34,6 +34,38 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class);
+     }
+ 
++    @Test
++    void aDraftOrConfirmedOrderCanBeCancelled() {
++        order.cancel();
++        assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
++
++        Order confirmed = new Order(new OrderId("o-2"), "ada", Instant.parse("2027-04-14T09:00:00Z"));
++        confirmed.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        confirmed.confirm();
++        confirmed.cancel();
++        assertThat(confirmed.status()).isEqualTo(OrderStatus.CANCELLED);
++    }
++
++    @Test
++    void aShippedOrderCannotBeCancelled() {
++        order.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        order.confirm();
++        order.ship();
++
++        assertThatThrownBy(order::cancel)
++                .isInstanceOf(InvalidOrderException.class)
++                .hasMessageContaining("expédiée");
++        assertThat(order.status()).isEqualTo(OrderStatus.SHIPPED);
++    }
++
++    @Test
++    void onlyAConfirmedOrderCanBeShipped() {
++        assertThatThrownBy(order::ship).isInstanceOf(InvalidOrderException.class);
++
++        order.cancel();
++        assertThatThrownBy(order::ship).isInstanceOf(InvalidOrderException.class);
++    }
++
+     @Test
+     void aLineNeedsAPositiveQuantity() {
+         assertThatThrownBy(() -> new OrderLine("CAFE", 0, BigDecimal.ONE))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..536ea89 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+ 
++import com.jayway.jsonpath.JsonPath;
+ import org.junit.jupiter.params.ParameterizedTest;
+ import org.junit.jupiter.params.provider.ValueSource;
+ import org.junit.jupiter.api.Test;
+@@ -50,4 +51,38 @@ class OrderControllerTest {
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());
+     }
++
++    @Test
++    void aConfirmedOrderIsCancelled() throws Exception {
++        String id = createOrder();
++        mvc.perform(post("/orders/{id}/confirm", id)).andExpect(status().isOk());
++
++        mvc.perform(post("/orders/{id}/cancel", id))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.status").value("CANCELLED"));
++    }
++
++    @Test
++    void cancellingAShippedOrderIsA422() throws Exception {
++        String id = createOrder();
++        mvc.perform(post("/orders/{id}/confirm", id)).andExpect(status().isOk());
++        mvc.perform(post("/orders/{id}/ship", id)).andExpect(status().isOk());
++
++        mvc.perform(post("/orders/{id}/cancel", id))
++                .andExpect(status().isUnprocessableContent())
++                .andExpect(jsonPath("$.detail").value("Une commande expédiée ne peut pas être annulée"));
++    }
++
++    @Test
++    void cancellingAnUnknownOrderIsA404() throws Exception {
++        mvc.perform(post("/orders/absente/cancel")).andExpect(status().isNotFound());
++    }
++
++    private String createOrder() throws Exception {
++        String body = mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":1,\"unitPrice\":1}]}"))
++                .andExpect(status().isCreated())
++                .andReturn().getResponse().getContentAsString();
++        return JsonPath.read(body, "$.id");
++    }
+ }

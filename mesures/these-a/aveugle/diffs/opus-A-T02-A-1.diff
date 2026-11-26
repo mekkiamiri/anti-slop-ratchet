@@ -1,0 +1,44 @@
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..d083f8b 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -1,9 +1,11 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+ 
++import com.jayway.jsonpath.JsonPath;
+ import org.junit.jupiter.params.ParameterizedTest;
+ import org.junit.jupiter.params.provider.ValueSource;
+ import org.junit.jupiter.api.Test;
+@@ -50,4 +52,27 @@ class OrderControllerTest {
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());
+     }
++
++    @Test
++    void anExistingOrderIsReturned() throws Exception {
++        String created = mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
++                .andExpect(status().isCreated())
++                .andReturn().getResponse().getContentAsString();
++        String id = JsonPath.read(created, "$.id");
++
++        mvc.perform(get("/orders/{id}", id))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.id").value(id))
++                .andExpect(jsonPath("$.customer").value("ada"))
++                .andExpect(jsonPath("$.status").value("DRAFT"))
++                .andExpect(jsonPath("$.total").value(3.0));
++    }
++
++    @Test
++    void readingAnUnknownOrderIsA404() throws Exception {
++        mvc.perform(get("/orders/absente"))
++                .andExpect(status().isNotFound())
++                .andExpect(jsonPath("$.detail").value("Commande introuvable : absente"));
++    }
+ }

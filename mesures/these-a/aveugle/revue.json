@@ -1,0 +1,449 @@
+{
+ "version": 1,
+ "protocole": "voir README.md, section Revue",
+ "copies": [
+  {
+   "copie": "sonnet-A/T01-A-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/domain/Order.java:86-88",
+      "order/web/OrderResponse.java:6-7"
+     ],
+     "categorie": "contrat d'API",
+     "texte": "total() change de sens : il valait la somme des lignes, il vaut maintenant le net remisé. Le champ JSON « total » existant change de signification pour les clients de l'API, sans versionnement ni mention.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "aucune règle ne regarde le contrat ; PMD/SpotBugs : rien"
+    },
+    {
+     "ou": [
+      "order/domain/Order.java:80",
+      "order/domain/OrderTest.java:22-37"
+     ],
+     "categorie": "test faible / cas limite",
+     "texte": "Arrondi HALF_UP choisi sans le dire et jamais testé : aucun cas qui tombe sur un demi-centime (ex. 100,05 € → remise 10,005 €). La règle d'arrondi n'est ni décidée avec le métier ni verrouillée par un test.",
+     "vue_par": "personne",
+     "regle_voisine": "R08",
+     "detail_classement": "R08 vise new BigDecimal(double), pas le mode d'arrondi"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-C/T02-C-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:52"
+     ],
+     "categorie": "nommage",
+     "texte": "La variable « location » contient le corps JSON de la réponse, pas un en-tête Location.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "aucun outil ne juge le sens d'un nom"
+    },
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:57-60"
+     ],
+     "categorie": "test faible",
+     "texte": "Oracle partiel : seuls id et total sont vérifiés ; client, statut et lignes renvoyés par GET /orders/{id} ne le sont pas.",
+     "vue_par": "personne",
+     "regle_voisine": "R11",
+     "detail_classement": "R11 vérifie que le test tourne, pas ce qu'il vérifie"
+    },
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:55"
+     ],
+     "categorie": "style",
+     "texte": "Nom qualifié complet com.jayway.jsonpath.JsonPath au milieu du test au lieu d'un import, incohérent avec le reste du fichier.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "UnnecessaryFullyQualifiedName (PMD) ne signale que si l'import existe déjà"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-A/T03-A-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/domain/Order.java:87"
+     ],
+     "categorie": "temps / cas limite",
+     "texte": "Fuseau UTC codé en dur pour une boutique en euros : une commande passée à 00h30 heure de Paris le 30 a une date de création UTC au 29, la livraison estimée affichée a un jour d'avance.",
+     "vue_par": "personne",
+     "regle_voisine": "R09",
+     "detail_classement": "R09 interdit Date/Calendar/SimpleDateFormat ; java.time avec un mauvais fuseau passe"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTest.java:25-26"
+     ],
+     "categorie": "test faible",
+     "texte": "Le test fige exactement ce cas (23:30Z) comme comportement attendu sans le questionner, et mélange deux scénarios dans un même test.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:33-34"
+     ],
+     "categorie": "test faible",
+     "texte": "Oracle faible : seul le motif \\d{2}/\\d{2}/\\d{4} est vérifié, pas la valeur. Un format MM/dd/yyyy ou YYYY (année de semaine) passerait.",
+     "vue_par": "personne",
+     "regle_voisine": "R11",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTest.java:24-26"
+     ],
+     "categorie": "style",
+     "texte": "java.time.LocalDate écrit en nom qualifié complet deux fois au lieu d'un import.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "PMD ne signale pas (aucun import existant)"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/application/OrderCsvExporter.java:37",
+      "order/web/OrderController.java:34"
+     ],
+     "categorie": "gestion d'erreur",
+     "texte": "IOException propagée jusqu'au contrôleur et non traduite par OrderExceptionHandler : 500 générique pour le client, chemin d'erreur jamais testé.",
+     "vue_par": "personne",
+     "regle_voisine": "R01",
+     "detail_classement": "R01 vise catch (Exception) ; une exception vérifiée laissée remonter n'est vue par personne"
+    },
+    {
+     "ou": [
+      "order/application/OrderCsvExporter.java:13",
+      "order/application/OrderCsvExporter.java:27",
+      "order/application/OrderCsvExporter.java:42"
+     ],
+     "categorie": "architecture",
+     "texte": "Écriture de fichier et configuration @Value dans la couche application : c'est un adaptateur d'infrastructure. R05/R07 ne regardent que domaine→web et web→stockage.",
+     "vue_par": "personne",
+     "regle_voisine": "R05 R07",
+     "detail_classement": "même famille (couches) mais la dépendance application→système de fichiers n'est pas visée"
+    },
+    {
+     "ou": [
+      "order/web/ExportResponse.java:4",
+      "order/web/OrderController.java:35"
+     ],
+     "categorie": "sécurité",
+     "texte": "L'API renvoie au client le chemin du fichier sur le serveur (fuite d'information) ; POST /orders/export écrit sur le disque du serveur sans contrôle d'accès.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:51-56"
+     ],
+     "categorie": "test faible",
+     "texte": "Le nom promet « the file and the count », seul le fichier est vérifié.",
+     "vue_par": "personne",
+     "regle_voisine": "R11",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/OrderCsvExporter.java:54",
+      "order/application/OrderCsvExporterTest.java:40"
+     ],
+     "categorie": "cas limite",
+     "texte": "Format monétaire incohérent dans le CSV : « 3.00 » mais « 0 » pour une commande vide ; le test fige l'incohérence au lieu de la signaler.",
+     "vue_par": "personne",
+     "regle_voisine": "R08",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/OrderCsvExporter.java:42"
+     ],
+     "categorie": "robustesse",
+     "texte": "Réécriture non atomique (pas de fichier temporaire + déplacement) : deux exports concurrents ou une panne laissent un fichier tronqué.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-A/T05-A-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/domain/Order.java:60-65"
+     ],
+     "categorie": "code mort / exigence",
+     "texte": "ship() n'est appelée que par les tests : aucun cas d'usage ni endpoint ne permet d'expédier, la règle du ticket ne peut pas se produire en production.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "vue par l'heuristique « code mort » de cette mesure, pas par les 11 règles ni PMD/SpotBugs (UnusedPrivateMethod ne vise que le privé)"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTest.java:37-55"
+     ],
+     "categorie": "cas limite",
+     "texte": "Aucun test des refus de ship() (commande brouillon, annulée) : les nouvelles transitions ne sont testées que sur le chemin heureux.",
+     "vue_par": "personne",
+     "regle_voisine": "R10",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/web/OrderControllerTest.java:59"
+     ],
+     "categorie": "style",
+     "texte": "Nom qualifié complet com.jayway.jsonpath.JsonPath au lieu d'un import.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-C/T06-C-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/application/NotificationService.java:15"
+     ],
+     "categorie": "ressources",
+     "texte": "Liste en mémoire sans borne dans un singleton de production : fuite mémoire lente (un message par confirmation, jamais purgé).",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/NotificationService.java:19"
+     ],
+     "categorie": "sécurité / données personnelles",
+     "texte": "Nom du client (donnée personnelle) écrit dans les logs au niveau INFO.",
+     "vue_par": "personne",
+     "regle_voisine": "R04",
+     "detail_classement": "R04 vise System.out ; ce qu'on met dans le logger n'est pas regardé"
+    },
+    {
+     "ou": [
+      "order/application/OrderService.java:48-49"
+     ],
+     "categorie": "conception / gestion d'erreur",
+     "texte": "Notification synchrone dans le cas d'usage, sans événement ni « après commit » : si l'envoi échoue, le client reçoit une erreur alors que la commande est déjà confirmée.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/OrderServiceTest.java:43-54"
+     ],
+     "categorie": "cas limite",
+     "texte": "Pas de test qu'une confirmation refusée (commande vide, déjà confirmée) n'envoie aucune notification.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/OrderService.java:49"
+     ],
+     "categorie": "conception",
+     "texte": "Le texte du message est fabriqué dans le cas d'usage (présentation dans la couche application) ; le service de notification devrait recevoir la commande ou un événement.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-A/T07-A-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/application/OrderService.java:65"
+     ],
+     "categorie": "exigence",
+     "texte": "Décision métier non demandée et non signalée : le chiffre d'affaires ne compte que les commandes CONFIRMED (et exclura tout futur statut SHIPPED).",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/application/OrderService.java:63-68",
+      "order/infrastructure/InMemoryOrderRepository.java:29"
+     ],
+     "categorie": "performance",
+     "texte": "Charge et copie toutes les commandes pour un comptage et une somme : à faire dans le stockage (agrégat).",
+     "vue_par": "personne",
+     "regle_voisine": "R07",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/web/StatsControllerTest.java:31",
+      "order/web/StatsControllerTest.java:43"
+     ],
+     "categorie": "argent / test",
+     "texte": "Montants comparés en double dans le test (revenue + 3.0).",
+     "vue_par": "personne",
+     "regle_voisine": "R08",
+     "detail_classement": "R08 vise new BigDecimal(double), pas un double dans un test"
+    },
+    {
+     "ou": [
+      "order/web/StatsControllerTest.java:28-44"
+     ],
+     "categorie": "test faible / cas limite",
+     "texte": "Test dépendant de l'état partagé du contexte Spring (lecture avant/après) ; ni magasin vide ni commande annulée testés.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/infrastructure/InMemoryOrderRepository.java:30"
+     ],
+     "categorie": "concurrence",
+     "texte": "synchronized ajouté sur save() : verrou global sur toutes les écritures, qui change le modèle de concurrence existant (verrou optimiste) pour une tâche de nuit, hors du périmètre du ticket.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/domain/OrderRepository.java:20",
+      "order/infrastructure/InMemoryOrderRepository.java:42"
+     ],
+     "categorie": "code mort",
+     "texte": "findArchivedById n'existe que pour le test : méthode de production jamais appelée par la production.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "vue par l'heuristique « code mort » de cette mesure seulement"
+    },
+    {
+     "ou": [
+      "order/application/OrderService.java:58-63"
+     ],
+     "categorie": "exigence / transactions",
+     "texte": "« Dans une transaction » réinterprété en verrou mémoire sans le dire : rien ne sera transactionnel le jour où le stockage devient JPA.",
+     "vue_par": "personne",
+     "regle_voisine": "R06",
+     "detail_classement": "R06 regarde les @Transactional mal placés, pas les transactions absentes"
+    },
+    {
+     "ou": [
+      "order/application/OrderServiceTest.java:51-67"
+     ],
+     "categorie": "cas limite",
+     "texte": "Pas de test de la frontière (exactement 30 jours) ni du câblage de la tâche planifiée (cron, @EnableScheduling).",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-A/T09-A-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/domain/Order.java:77"
+     ],
+     "categorie": "cas limite",
+     "texte": "Une commande vide paie 4,90 € de frais de port (sous-total 0 < 50).",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "ShopApplicationTest.java:31",
+      "order/application/OrderServiceTest.java:38",
+      "order/web/OrderControllerTest.java:32"
+     ],
+     "categorie": "tests modifiés",
+     "texte": "L'agent a changé l'attendu de trois tests existants (3.00 → 7.90). Légitime ici, mais rien ne le signale au relecteur : c'est exactement le geste qu'ImpossibleBench mesure quand il ne l'est pas.",
+     "vue_par": "personne",
+     "regle_voisine": "R11",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/domain/Order.java:81-83"
+     ],
+     "categorie": "contrat d'API",
+     "texte": "total() change de sens (inclut le port) sous le même nom et le même champ JSON.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  },
+  {
+   "copie": "sonnet-C/T10-C-1",
+   "remarques": [
+    {
+     "ou": [
+      "order/domain/OrderTotalTest.java:49-55",
+      "order/domain/OrderTest.java:14-20"
+     ],
+     "categorie": "test dupliqué",
+     "texte": "Reprend le scénario du test existant OrderTest (somme de 0,10 et 0,20 sans erreur d'arrondi) : doublon de test, trop court pour CPD.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "CPD (50 jetons) ne voit pas un doublon de 5 lignes"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTotalTest.java:57-70"
+     ],
+     "categorie": "test faible",
+     "texte": "Deux tests sans rapport avec le calcul (confirmation, copie) ; ligne 69 l'oracle est relatif (total de la copie = total de l'original) et passe même si les deux sont faux.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTotalTest.java:14-15"
+     ],
+     "categorie": "cas limite",
+     "texte": "Le total d'une commande vide vaut BigDecimal.ZERO (échelle 0, « 0 » dans le JSON, « 3.00 » ailleurs) ; isEqualByComparingTo masque cette incohérence au lieu de la fixer.",
+     "vue_par": "personne",
+     "regle_voisine": "R08",
+     "detail_classement": "-"
+    },
+    {
+     "ou": [
+      "order/domain/OrderTotalTest.java:18-23"
+     ],
+     "categorie": "cas limite",
+     "texte": "Aucun prix à plus de deux décimales (ex. 3 × 0,333) ni grande quantité : on ne sait pas si le total doit être arrondi au centime.",
+     "vue_par": "personne",
+     "regle_voisine": null,
+     "detail_classement": "-"
+    }
+   ]
+  }
+ ]
+}

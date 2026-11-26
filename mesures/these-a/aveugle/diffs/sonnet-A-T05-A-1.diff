@@ -1,0 +1,96 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..a8d21c4 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -57,10 +57,20 @@ public class Order {
+         status = OrderStatus.CONFIRMED;
+     }
+ 
++    public void ship() {
++        if (status != OrderStatus.CONFIRMED) {
++            throw new InvalidOrderException("Seule une commande confirmée peut être expédiée : " + status);
++        }
++        status = OrderStatus.SHIPPED;
++    }
++
+     public void cancel() {
+         if (status == OrderStatus.CANCELLED) {
+             throw new InvalidOrderException("Commande déjà annulée");
+         }
++        if (status == OrderStatus.SHIPPED) {
++            throw new InvalidOrderException("Une commande expédiée ne peut pas être annulée");
++        }
+         status = OrderStatus.CANCELLED;
+     }
+ 
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+index d9e659a..8421169 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+@@ -3,5 +3,6 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ public enum OrderStatus {
+     DRAFT,
+     CONFIRMED,
++    SHIPPED,
+     CANCELLED
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..7597150 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -34,6 +34,26 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class);
+     }
+ 
++    @Test
++    void aConfirmedOrderCanBeCancelled() {
++        order.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        order.confirm();
++
++        order.cancel();
++
++        assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
++    }
++
++    @Test
++    void aShippedOrderCannotBeCancelled() {
++        order.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        order.confirm();
++        order.ship();
++
++        assertThatThrownBy(order::cancel).isInstanceOf(InvalidOrderException.class);
++        assertThat(order.status()).isEqualTo(OrderStatus.SHIPPED);
++    }
++
+     @Test
+     void aLineNeedsAPositiveQuantity() {
+         assertThatThrownBy(() -> new OrderLine("CAFE", 0, BigDecimal.ONE))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..324ea88 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -46,6 +46,24 @@ class OrderControllerTest {
+                 .andExpect(status().isBadRequest());
+     }
+ 
++    @Test
++    void anUnknownOrderCannotBeCancelled() throws Exception {
++        mvc.perform(post("/orders/absente/cancel")).andExpect(status().isNotFound());
++    }
++
++    @Test
++    void aCreatedOrderCanBeCancelledOnlyOnce() throws Exception {
++        String body = mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":1,\"unitPrice\":1}]}"))
++                .andReturn().getResponse().getContentAsString();
++        String id = com.jayway.jsonpath.JsonPath.read(body, "$.id");
++
++        mvc.perform(post("/orders/" + id + "/cancel"))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.status").value("CANCELLED"));
++        mvc.perform(post("/orders/" + id + "/cancel")).andExpect(status().isUnprocessableContent());
++    }
++
+     @Test
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());

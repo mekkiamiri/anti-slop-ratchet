@@ -1,0 +1,78 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..53bc686 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -2,6 +2,8 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ 
+ import java.math.BigDecimal;
+ import java.time.Instant;
++import java.time.LocalDate;
++import java.time.ZoneOffset;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Objects;
+@@ -80,6 +82,11 @@ public class Order {
+         return createdAt;
+     }
+ 
++    /** Date de livraison estimée : jour de création (UTC) plus 3 jours. */
++    public LocalDate estimatedDeliveryDate() {
++        return createdAt.atOffset(ZoneOffset.UTC).toLocalDate().plusDays(3);
++    }
++
+     public List<OrderLine> lines() {
+         return List.copyOf(lines);
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+index ce856de..971061d 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+@@ -2,10 +2,15 @@ package io.github.mekkiamiri.ratchet.order.web;
+ 
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import java.math.BigDecimal;
++import java.time.format.DateTimeFormatter;
+ 
+-public record OrderResponse(String id, String customer, String status, BigDecimal total) {
++public record OrderResponse(String id, String customer, String status, BigDecimal total,
++        String estimatedDeliveryDate) {
++
++    private static final DateTimeFormatter DELIVERY_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+ 
+     static OrderResponse from(Order order) {
+-        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total());
++        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total(),
++                DELIVERY_DATE_FORMAT.format(order.estimatedDeliveryDate()));
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..37fc2af 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -34,6 +34,11 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class);
+     }
+ 
++    @Test
++    void estimatedDeliveryIsCreationDatePlusThreeDays() {
++        assertThat(order.estimatedDeliveryDate()).isEqualTo(java.time.LocalDate.parse("2027-04-17"));
++    }
++
+     @Test
+     void aLineNeedsAPositiveQuantity() {
+         assertThatThrownBy(() -> new OrderLine("CAFE", 0, BigDecimal.ONE))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..b54f7d2 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -29,7 +29,9 @@ class OrderControllerTest {
+         mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
+                         .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
+                 .andExpect(status().isCreated())
+-                .andExpect(jsonPath("$.total").value(3.0));
++                .andExpect(jsonPath("$.total").value(3.0))
++                .andExpect(jsonPath("$.estimatedDeliveryDate").value(
++                        org.hamcrest.Matchers.matchesPattern("\\d{2}/\\d{2}/\\d{4}")));
+     }
+ 
+     @ParameterizedTest(name = "JSON incomplet {0} : 400, pas 500")

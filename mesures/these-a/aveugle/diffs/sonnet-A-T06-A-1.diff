@@ -1,0 +1,90 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java
+new file mode 100644
+index 0000000..0d1ee67
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java
+@@ -0,0 +1,21 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import io.github.mekkiamiri.ratchet.order.domain.Order;
++import java.util.List;
++import java.util.concurrent.CopyOnWriteArrayList;
++import org.springframework.stereotype.Service;
++
++/** Envoi de notifications simulé : les messages sont seulement conservés en mémoire. */
++@Service
++public class NotificationService {
++
++    private final List<String> sent = new CopyOnWriteArrayList<>();
++
++    public void orderConfirmed(Order order) {
++        sent.add("Commande " + order.id().value() + " validée pour " + order.customer());
++    }
++
++    public List<String> sentMessages() {
++        return List.copyOf(sent);
++    }
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..58a3c14 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -26,10 +26,12 @@ public class OrderService {
+ 
+     private final OrderRepository orders;
+     private final Clock clock;
++    private final NotificationService notifications;
+ 
+-    public OrderService(OrderRepository orders, Clock clock) {
++    public OrderService(OrderRepository orders, Clock clock, NotificationService notifications) {
+         this.orders = orders;
+         this.clock = clock;
++        this.notifications = notifications;
+     }
+ 
+     public Order create(String customer, List<OrderLine> lines) {
+@@ -43,7 +45,9 @@ public class OrderService {
+     public Order confirm(OrderId id) {
+         Order order = get(id);
+         order.confirm();
+-        return orders.save(order);
++        Order saved = orders.save(order);
++        notifications.orderConfirmed(saved);
++        return saved;
+     }
+ 
+     public Order cancel(OrderId id) {
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..8b91136 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test;
+ class OrderServiceTest {
+ 
+     private final Clock clock = Clock.fixed(Instant.parse("2027-04-14T09:00:00Z"), ZoneOffset.UTC);
+-    private final OrderService service = new OrderService(new InMemoryOrderRepository(), clock);
++    private final NotificationService notifications = new NotificationService();
++    private final OrderService service = new OrderService(new InMemoryOrderRepository(), clock, notifications);
+ 
+     @Test
+     void createsThenConfirmsAnOrder() {
+@@ -39,6 +40,19 @@ class OrderServiceTest {
+         assertThat(confirmed.createdAt()).isEqualTo(clock.instant());
+     }
+ 
++    @Test
++    void confirmingAnOrderSendsOneNotification() {
++        var created = service.create("ada", List.of(new OrderLine("CAFE", 1, BigDecimal.ONE)));
++        assertThat(notifications.sentMessages()).isEmpty();
++
++        service.confirm(created.id());
++
++        assertThat(notifications.sentMessages())
++                .singleElement()
++                .asString()
++                .contains(created.id().value(), "ada");
++    }
++
+     @Test
+     void anUnknownOrderIsABusinessErrorNotAnHttpOne() {
+         assertThatThrownBy(() -> service.get(new OrderId("absente")))

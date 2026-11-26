@@ -1,0 +1,75 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..bceb26d 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -14,6 +14,9 @@ import java.util.Objects;
+  */
+ public class Order {
+ 
++    private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("50.00");
++    private static final BigDecimal SHIPPING_FEE = new BigDecimal("4.90");
++
+     private final OrderId id;
+     private final String customer;
+     private final Instant createdAt;
+@@ -68,6 +71,15 @@ public class Order {
+         return lines.stream().map(OrderLine::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+     }
+ 
++    /** Frais de port : 4,90 € sous 50 € de marchandises, gratuits dès 50 €. */
++    public BigDecimal shippingCost() {
++        return total().compareTo(FREE_SHIPPING_THRESHOLD) < 0 ? SHIPPING_FEE : BigDecimal.ZERO;
++    }
++
++    public BigDecimal totalWithShipping() {
++        return total().add(shippingCost());
++    }
++
+     public OrderId id() {
+         return id;
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+index ce856de..e7b78a8 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+@@ -3,9 +3,11 @@ package io.github.mekkiamiri.ratchet.order.web;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import java.math.BigDecimal;
+ 
+-public record OrderResponse(String id, String customer, String status, BigDecimal total) {
++public record OrderResponse(String id, String customer, String status, BigDecimal total, BigDecimal shippingCost,
++        BigDecimal totalWithShipping) {
+ 
+     static OrderResponse from(Order order) {
+-        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total());
++        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total(),
++                order.shippingCost(), order.totalWithShipping());
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..26c7e16 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -19,6 +19,22 @@ class OrderTest {
+         assertThat(order.total()).isEqualByComparingTo("0.50");
+     }
+ 
++    @Test
++    void shippingIsChargedBelowFiftyEuros() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("49.99")));
++
++        assertThat(order.shippingCost()).isEqualByComparingTo("4.90");
++        assertThat(order.totalWithShipping()).isEqualByComparingTo("54.89");
++    }
++
++    @Test
++    void shippingIsFreeFromFiftyEuros() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("50.00")));
++
++        assertThat(order.shippingCost()).isEqualByComparingTo("0");
++        assertThat(order.totalWithShipping()).isEqualByComparingTo("50.00");
++    }
++
+     @Test
+     void anEmptyOrderCannotBeConfirmed() {
+         assertThatThrownBy(order::confirm).isInstanceOf(InvalidOrderException.class);

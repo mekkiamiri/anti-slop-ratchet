@@ -122,6 +122,10 @@ def main() -> int:
     ap.add_argument("--modele", default=None)
     ap.add_argument("--java-home", default=os.environ.get("BANC_JAVA_HOME"))
     ap.add_argument("--garder", action="store_true", help="garder les copies (pour relire les diffs)")
+    ap.add_argument("--dossier-copies", default=None,
+                    help="dossier où créer les copies (défaut : dossier temporaire) ; utile avec --garder")
+    ap.add_argument("--etiquette", default="",
+                    help="suffixe du fichier de résultats (ex. --etiquette=-aveugle-sonnet), pour ne pas mélanger les campagnes")
     ap.add_argument("--essai-a-blanc", action="store_true")
     ap.add_argument("--projet", choices=["propre", "sale"], default="propre",
                     help="sale : le service et le contrôleur contiennent déjà 7 erreurs du catalogue (projet-sale/)")
@@ -137,7 +141,9 @@ def main() -> int:
         env["JAVA_HOME"] = a.java_home
         env["PATH"] = str(Path(a.java_home) / "bin") + os.pathsep + env["PATH"]
 
-    racine_runs = Path(tempfile.mkdtemp(prefix="banc-antislop-"))
+    if a.dossier_copies:
+        Path(a.dossier_copies).mkdir(parents=True, exist_ok=True)
+    racine_runs = Path(tempfile.mkdtemp(prefix="banc-antislop-", dir=a.dossier_copies))
     if a.essai_a_blanc:
         faux = racine_runs / "faux-agent.sh"
         faux.write_text(FAUX_AGENT)
@@ -145,7 +151,7 @@ def main() -> int:
         a.agent_cmd, taches, conditions, a.passages = str(faux), taches[:1], ["A"], 1
 
     suffixe = "-essai" if a.essai_a_blanc else ("-sale" if a.projet == "sale" else "")
-    sortie = ICI / "resultats" / f"{dt.date.today().isoformat()}{suffixe}.jsonl"
+    sortie = ICI / "resultats" / f"{dt.date.today().isoformat()}{suffixe}{a.etiquette}.jsonl"
     # Violations déjà présentes avant l'agent (0 pour le projet propre) : on compte ensuite les nouvelles.
     base_dir = racine_runs / "ligne-de-base"
     base_dir.mkdir()
@@ -167,11 +173,18 @@ def main() -> int:
                     print(f"{t['id']} {c} #{n} : INVALIDE (accès au modèle) : {agent['erreur'][:120]}")
                     shutil.rmtree(dest, ignore_errors=True)
                     continue
+                if a.garder:
+                    # Instantané du code rendu par l'agent, avant que le compteur ne touche à la copie
+                    # (il remet puis retire les règles) : le diff départ..agent reste relisible.
+                    subprocess.run(["git", "add", "-A"], cwd=dest, capture_output=True)
+                    subprocess.run(["git", "-c", "user.email=banc@exemple.invalid", "-c", "user.name=banc",
+                                    "commit", "-q", "--allow-empty", "-m", "agent"], cwd=dest, capture_output=True)
+                    subprocess.run(["git", "tag", "agent"], cwd=dest, capture_output=True)
                 mesure = compteur.compter(dest, RACINE, a.java_home)
                 nouvelles = {r: n_ - depart.get(r, 0) for r, n_ in mesure["violations"].items()
                              if n_ - depart.get(r, 0) > 0}
                 ligne = {"date": dt.datetime.now().isoformat(timespec="seconds"), "projet": a.projet, "tache": t["id"],
-                         "zone": t["zone"], "condition": c, "passage": n, "agent": agent, **mesure,
+                         "zone": t["zone"], "condition": c, "passage": n, "modele_demande": a.modele, "agent": agent, **mesure,
                          "violations_depart": depart, "violations_nouvelles": nouvelles,
                          "violations_nouvelles_total": sum(nouvelles.values())}
                 with sortie.open("a") as f:

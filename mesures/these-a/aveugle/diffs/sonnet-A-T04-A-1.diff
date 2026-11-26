@@ -1,0 +1,210 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java
+new file mode 100644
+index 0000000..6e44897
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java
+@@ -0,0 +1,57 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import io.github.mekkiamiri.ratchet.order.domain.Order;
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.List;
++import java.util.stream.Collectors;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.stereotype.Component;
++
++/** Écrit les commandes dans un fichier CSV (une ligne par commande, après l'en-tête). */
++@Component
++public class OrderCsvExporter {
++
++    static final String HEADER = "id,customer,status,createdAt,lineCount,total";
++
++    private final Path file;
++
++    public OrderCsvExporter(@Value("${orders.export.path:orders.csv}") Path file) {
++        this.file = file;
++    }
++
++    /** Remplace le fichier et renvoie le nombre de commandes écrites. */
++    public int export(List<Order> orders) {
++        String content = HEADER + "\r\n" + orders.stream()
++                .map(o -> row(o) + "\r\n")
++                .collect(Collectors.joining());
++        try {
++            Files.writeString(file, content, StandardCharsets.UTF_8);
++        } catch (IOException e) {
++            throw new UncheckedIOException("Export impossible vers " + file, e);
++        }
++        return orders.size();
++    }
++
++    private static String row(Order o) {
++        return String.join(",",
++                escape(o.id().value()),
++                escape(o.customer()),
++                o.status().name(),
++                o.createdAt().toString(),
++                String.valueOf(o.lines().size()),
++                o.total().toPlainString());
++    }
++
++    /** Guillemets RFC 4180, et neutralisation des formules pour les tableurs (champ saisi par l'utilisateur). */
++    private static String escape(String value) {
++        String safe = !value.isEmpty() && "=+-@\t\r".indexOf(value.charAt(0)) >= 0 ? "'" + value : value;
++        if (safe.contains(",") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r")) {
++            return "\"" + safe.replace("\"", "\"\"") + "\"";
++        }
++        return safe;
++    }
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..6f6288d 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -52,6 +52,10 @@ public class OrderService {
+         return orders.save(order);
+     }
+ 
++    public List<Order> findAll() {
++        return orders.findAll();
++    }
++
+     public Order get(OrderId id) {
+         return orders.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+index 6c04dd7..e56e3ba 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
++import java.util.List;
+ import java.util.Optional;
+ 
+ /** Port du domaine : le stockage est un détail d'infrastructure. */
+@@ -14,4 +15,7 @@ public interface OrderRepository {
+      * @throws ConcurrentOrderUpdateException si une autre écriture est passée entre-temps
+      */
+     Order save(Order order);
++
++    /** Renvoie des copies de toutes les commandes, triées par date de création puis par id. */
++    List<Order> findAll();
+ }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+index 1849154..147b564 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+@@ -4,6 +4,8 @@ import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import java.util.Comparator;
++import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.concurrent.ConcurrentHashMap;
+@@ -34,4 +36,12 @@ public class InMemoryOrderRepository implements OrderRepository {
+         });
+         return saved.copyAtVersion(saved.version());
+     }
++
++    @Override
++    public List<Order> findAll() {
++        return orders.values().stream()
++                .map(stored -> stored.copyAtVersion(stored.version()))
++                .sorted(Comparator.comparing(Order::createdAt).thenComparing(o -> o.id().value()))
++                .toList();
++    }
+ }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java
+new file mode 100644
+index 0000000..fdd912c
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/ExportResponse.java
+@@ -0,0 +1,5 @@
++package io.github.mekkiamiri.ratchet.order.web;
++
++/** Résultat d'un export : nombre de commandes écrites dans le fichier CSV. */
++public record ExportResponse(int exported) {
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+index 1d25255..f0f08d9 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import io.github.mekkiamiri.ratchet.order.application.OrderCsvExporter;
+ import io.github.mekkiamiri.ratchet.order.application.OrderService;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+@@ -21,8 +22,16 @@ public class OrderController {
+ 
+     private final OrderService service;
+ 
+-    public OrderController(OrderService service) {
++    private final OrderCsvExporter exporter;
++
++    public OrderController(OrderService service, OrderCsvExporter exporter) {
+         this.service = service;
++        this.exporter = exporter;
++    }
++
++    @PostMapping("/export")
++    public ExportResponse export() {
++        return new ExportResponse(exporter.export(service.findAll()));
+     }
+ 
+     @PostMapping
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderExportTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderExportTest.java
+new file mode 100644
+index 0000000..dcab490
+--- /dev/null
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderExportTest.java
+@@ -0,0 +1,41 @@
++package io.github.mekkiamiri.ratchet.order.web;
++
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.List;
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.test.context.SpringBootTest;
++import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
++import org.springframework.http.MediaType;
++import org.springframework.test.web.servlet.MockMvc;
++
++@SpringBootTest(properties = "orders.export.path=target/test-orders.csv")
++@AutoConfigureMockMvc
++class OrderExportTest {
++
++    private final MockMvc mvc;
++
++    @Autowired
++    OrderExportTest(MockMvc mvc) {
++        this.mvc = mvc;
++    }
++
++    @Test
++    void exportWritesOneLineByOrderWithEscaping() throws Exception {
++        String body = "{\"customer\":\"=Ada, \\\"Q\\\"\","
++                + "\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}";
++        mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON).content(body))
++                .andExpect(status().isCreated());
++
++        mvc.perform(post("/orders/export")).andExpect(status().isOk());
++
++        List<String> lines = Files.readAllLines(Path.of("target/test-orders.csv"));
++        assertThat(lines.get(0)).isEqualTo("id,customer,status,createdAt,lineCount,total");
++        assertThat(lines).anyMatch(l -> l.contains("\"'=Ada, \"\"Q\"\"\",DRAFT,") && l.endsWith(",1,3.00"));
++    }
++}

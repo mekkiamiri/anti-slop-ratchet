@@ -1,0 +1,77 @@
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java
+new file mode 100644
+index 0000000..1c04748
+--- /dev/null
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java
+@@ -0,0 +1,71 @@
++package io.github.mekkiamiri.ratchet.order.domain;
++
++import static org.assertj.core.api.Assertions.assertThat;
++
++import java.math.BigDecimal;
++import java.time.Instant;
++import org.junit.jupiter.api.Test;
++
++class OrderTotalTest {
++
++    private final Order order = new Order(new OrderId("o-1"), "ada", Instant.parse("2027-04-14T09:00:00Z"));
++
++    @Test
++    void anEmptyOrderTotalsZero() {
++        assertThat(order.total()).isEqualByComparingTo("0");
++    }
++
++    @Test
++    void aLineTotalsQuantityTimesUnitPrice() {
++        order.addLine(new OrderLine("CAFE", 4, new BigDecimal("2.50")));
++
++        assertThat(order.total()).isEqualByComparingTo("10.00");
++    }
++
++    @Test
++    void theTotalSumsAllLines() {
++        order.addLine(new OrderLine("CAFE", 2, new BigDecimal("3.20")));
++        order.addLine(new OrderLine("THE", 3, new BigDecimal("1.15")));
++
++        assertThat(order.total()).isEqualByComparingTo("9.85");
++    }
++
++    @Test
++    void theSameSkuOnTwoLinesIsCountedTwice() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("2.00")));
++        order.addLine(new OrderLine("CAFE", 2, new BigDecimal("2.00")));
++
++        assertThat(order.total()).isEqualByComparingTo("6.00");
++    }
++
++    @Test
++    void aFreeLineAddsNothing() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("2.00")));
++        order.addLine(new OrderLine("ECHANTILLON", 5, BigDecimal.ZERO));
++
++        assertThat(order.total()).isEqualByComparingTo("2.00");
++    }
++
++    @Test
++    void decimalPricesAreSummedWithoutRoundingError() {
++        order.addLine(new OrderLine("A", 1, new BigDecimal("0.10")));
++        order.addLine(new OrderLine("B", 1, new BigDecimal("0.20")));
++
++        assertThat(order.total()).isEqualTo(new BigDecimal("0.30"));
++    }
++
++    @Test
++    void theTotalSurvivesConfirmation() {
++        order.addLine(new OrderLine("CAFE", 2, new BigDecimal("4.00")));
++        order.confirm();
++
++        assertThat(order.total()).isEqualByComparingTo("8.00");
++    }
++
++    @Test
++    void aCopyKeepsTheSameTotal() {
++        order.addLine(new OrderLine("CAFE", 2, new BigDecimal("4.00")));
++
++        assertThat(order.copyAtVersion(1).total()).isEqualByComparingTo(order.total());
++    }
++}

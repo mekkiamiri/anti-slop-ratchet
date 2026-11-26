@@ -1,0 +1,116 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..9ee183e 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -1,6 +1,7 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
+ import java.math.BigDecimal;
++import java.math.RoundingMode;
+ import java.time.Instant;
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -14,6 +15,9 @@ import java.util.Objects;
+  */
+ public class Order {
+ 
++    private static final BigDecimal DISCOUNT_THRESHOLD = new BigDecimal("100");
++    private static final BigDecimal DISCOUNT_RATE = new BigDecimal("0.10");
++
+     private final OrderId id;
+     private final String customer;
+     private final Instant createdAt;
+@@ -64,10 +68,25 @@ public class Order {
+         status = OrderStatus.CANCELLED;
+     }
+ 
+-    public BigDecimal total() {
++    /** Somme des lignes, avant remise. */
++    public BigDecimal subtotal() {
+         return lines.stream().map(OrderLine::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+     }
+ 
++    /** Remise de 10 % (arrondie au centime) quand le sous-total dépasse strictement 100 €, sinon zéro. */
++    public BigDecimal discount() {
++        BigDecimal subtotal = subtotal();
++        if (subtotal.compareTo(DISCOUNT_THRESHOLD) <= 0) {
++            return BigDecimal.ZERO;
++        }
++        return subtotal.multiply(DISCOUNT_RATE).setScale(2, RoundingMode.HALF_UP);
++    }
++
++    /** Total à payer : sous-total moins remise. */
++    public BigDecimal total() {
++        return subtotal().subtract(discount());
++    }
++
+     public OrderId id() {
+         return id;
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+index ce856de..a4870cc 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java
+@@ -3,9 +3,11 @@ package io.github.mekkiamiri.ratchet.order.web;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import java.math.BigDecimal;
+ 
+-public record OrderResponse(String id, String customer, String status, BigDecimal total) {
++public record OrderResponse(String id, String customer, String status, BigDecimal subtotal, BigDecimal discount,
++        BigDecimal total) {
+ 
+     static OrderResponse from(Order order) {
+-        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.total());
++        return new OrderResponse(order.id().value(), order.customer(), order.status().name(), order.subtotal(),
++                order.discount(), order.total());
+     }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..50985bf 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -19,6 +19,23 @@ class OrderTest {
+         assertThat(order.total()).isEqualByComparingTo("0.50");
+     }
+ 
++    @Test
++    void noDiscountAtExactlyOneHundred() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("100.00")));
++
++        assertThat(order.discount()).isEqualByComparingTo("0");
++        assertThat(order.total()).isEqualByComparingTo("100.00");
++    }
++
++    @Test
++    void tenPercentDiscountAboveOneHundred() {
++        order.addLine(new OrderLine("CAFE", 1, new BigDecimal("100.01")));
++
++        assertThat(order.subtotal()).isEqualByComparingTo("100.01");
++        assertThat(order.discount()).isEqualByComparingTo("10.00");
++        assertThat(order.total()).isEqualByComparingTo("90.01");
++    }
++
+     @Test
+     void anEmptyOrderCannotBeConfirmed() {
+         assertThatThrownBy(order::confirm).isInstanceOf(InvalidOrderException.class);
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..6d2acda 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -32,6 +32,16 @@ class OrderControllerTest {
+                 .andExpect(jsonPath("$.total").value(3.0));
+     }
+ 
++    @Test
++    void theDiscountAppearsInTheResponseAboveOneHundred() throws Exception {
++        mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":60.00}]}"))
++                .andExpect(status().isCreated())
++                .andExpect(jsonPath("$.subtotal").value(120.0))
++                .andExpect(jsonPath("$.discount").value(12.0))
++                .andExpect(jsonPath("$.total").value(108.0));
++    }
++
+     @ParameterizedTest(name = "JSON incomplet {0} : 400, pas 500")
+     @ValueSource(strings = {
+             "{}",

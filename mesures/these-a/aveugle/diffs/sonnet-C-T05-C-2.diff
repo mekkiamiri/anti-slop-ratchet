@@ -1,0 +1,90 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+index 3ccc68d..a227743 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java
+@@ -57,10 +57,20 @@ public class Order {
+         status = OrderStatus.CONFIRMED;
+     }
+ 
++    public void ship() {
++        if (status != OrderStatus.CONFIRMED) {
++            throw new InvalidOrderException("Seule une commande confirmée peut être expédiée, or elle est " + status);
++        }
++        status = OrderStatus.SHIPPED;
++    }
++
+     public void cancel() {
+         if (status == OrderStatus.CANCELLED) {
+             throw new InvalidOrderException("Commande déjà annulée");
+         }
++        if (status == OrderStatus.SHIPPED) {
++            throw new InvalidOrderException("Une commande expédiée ne peut pas être annulée");
++        }
+         status = OrderStatus.CANCELLED;
+     }
+ 
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+index d9e659a..8421169 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java
+@@ -3,5 +3,6 @@ package io.github.mekkiamiri.ratchet.order.domain;
+ public enum OrderStatus {
+     DRAFT,
+     CONFIRMED,
++    SHIPPED,
+     CANCELLED
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..55fd831 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -34,6 +34,31 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class);
+     }
+ 
++    @Test
++    void aConfirmedOrderCanBeCancelled() {
++        order.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        order.confirm();
++
++        order.cancel();
++
++        assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
++    }
++
++    @Test
++    void aShippedOrderCannotBeCancelled() {
++        order.addLine(new OrderLine("CAFE", 1, BigDecimal.ONE));
++        order.confirm();
++        order.ship();
++
++        assertThatThrownBy(order::cancel).isInstanceOf(InvalidOrderException.class);
++        assertThat(order.status()).isEqualTo(OrderStatus.SHIPPED);
++    }
++
++    @Test
++    void aDraftOrderCannotBeShipped() {
++        assertThatThrownBy(order::ship).isInstanceOf(InvalidOrderException.class);
++    }
++
+     @Test
+     void aLineNeedsAPositiveQuantity() {
+         assertThatThrownBy(() -> new OrderLine("CAFE", 0, BigDecimal.ONE))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..bc3b000 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -47,7 +47,12 @@ class OrderControllerTest {
+     }
+ 
+     @Test
+-    void anUnknownOrderIsA404() throws Exception {
++    void anUnknownOrderCannotBeCancelled() throws Exception {
++        mvc.perform(post("/orders/absente/cancel")).andExpect(status().isNotFound());
++    }
++
++    @Test
++    void anUnknownOrderIsA404()throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());
+     }
+ }

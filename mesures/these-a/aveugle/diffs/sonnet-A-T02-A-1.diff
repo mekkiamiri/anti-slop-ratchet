@@ -1,0 +1,41 @@
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..9204a97 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -1,9 +1,11 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+ 
++import com.jayway.jsonpath.JsonPath;
+ import org.junit.jupiter.params.ParameterizedTest;
+ import org.junit.jupiter.params.provider.ValueSource;
+ import org.junit.jupiter.api.Test;
+@@ -46,6 +48,24 @@ class OrderControllerTest {
+                 .andExpect(status().isBadRequest());
+     }
+ 
++    @Test
++    void anExistingOrderIsReturnedById() throws Exception {
++        String body = mvc.perform(post("/orders").contentType(MediaType.APPLICATION_JSON)
++                        .content("{\"customer\":\"ada\",\"lines\":[{\"sku\":\"CAFE\",\"quantity\":2,\"unitPrice\":1.50}]}"))
++                .andReturn().getResponse().getContentAsString();
++        String id = JsonPath.read(body, "$.id");
++
++        mvc.perform(get("/orders/" + id))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.id").value(id))
++                .andExpect(jsonPath("$.total").value(3.0));
++    }
++
++    @Test
++    void gettingAnUnknownOrderIsA404() throws Exception {
++        mvc.perform(get("/orders/absente")).andExpect(status().isNotFound());
++    }
++
+     @Test
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());

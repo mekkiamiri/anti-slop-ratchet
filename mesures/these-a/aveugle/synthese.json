@@ -1,0 +1,204 @@
+{
+ "mesures": {
+  "opus-A": {
+   "copies": 10,
+   "lignes_main": 36.8,
+   "lignes_test": 48.2,
+   "nouveaux_types_main": 1,
+   "nouvelles_interfaces": 2,
+   "interfaces_une_impl": 2,
+   "cc_ajoutee": 4.6,
+   "cc_max_methode_touchee": 5,
+   "pmd_nouveaux": 1,
+   "cpd_nouveaux": 0,
+   "spotbugs_nouveaux": 7,
+   "tests_ajoutes": 44,
+   "assertions_par_test": 2.34,
+   "tests_sans_assertion": 0,
+   "part_null_vide": 0.2,
+   "part_erreur": 0.36,
+   "part_frontiere": 0.48,
+   "part_un_cas_limite": 0.73,
+   "couverture_lignes_ajoutees": 0.926,
+   "methodes_jamais_appelees": 0,
+   "methodes_test_seulement": 1,
+   "types_jamais_references": 0,
+   "compile": 10,
+   "tests_verts": 10
+  },
+  "sonnet-A": {
+   "copies": 20,
+   "lignes_main": 26.2,
+   "lignes_test": 23.1,
+   "nouveaux_types_main": 0.75,
+   "nouvelles_interfaces": 0,
+   "interfaces_une_impl": 0,
+   "cc_ajoutee": 4,
+   "cc_max_methode_touchee": 7,
+   "pmd_nouveaux": 0,
+   "cpd_nouveaux": 0,
+   "spotbugs_nouveaux": 1,
+   "tests_ajoutes": 49,
+   "assertions_par_test": 1.94,
+   "tests_sans_assertion": 0,
+   "part_null_vide": 0.22,
+   "part_erreur": 0.37,
+   "part_frontiere": 0.22,
+   "part_un_cas_limite": 0.61,
+   "couverture_lignes_ajoutees": 0.949,
+   "methodes_jamais_appelees": 0,
+   "methodes_test_seulement": 4,
+   "types_jamais_references": 0,
+   "compile": 20,
+   "tests_verts": 20
+  },
+  "sonnet-C": {
+   "copies": 20,
+   "lignes_main": 26.2,
+   "lignes_test": 25.05,
+   "nouveaux_types_main": 0.65,
+   "nouvelles_interfaces": 0,
+   "interfaces_une_impl": 0,
+   "cc_ajoutee": 3.65,
+   "cc_max_methode_touchee": 7,
+   "pmd_nouveaux": 4,
+   "cpd_nouveaux": 0,
+   "spotbugs_nouveaux": 0,
+   "tests_ajoutes": 59,
+   "assertions_par_test": 1.93,
+   "tests_sans_assertion": 0,
+   "part_null_vide": 0.24,
+   "part_erreur": 0.36,
+   "part_frontiere": 0.32,
+   "part_un_cas_limite": 0.68,
+   "couverture_lignes_ajoutees": 0.967,
+   "methodes_jamais_appelees": 0,
+   "methodes_test_seulement": 5,
+   "types_jamais_references": 0,
+   "compile": 20,
+   "tests_verts": 20
+  }
+ },
+ "passages": {
+  "sonnet-A": {
+   "passages": 20,
+   "cout_total_usd": 2.982,
+   "cout_moyen_usd": 0.15,
+   "duree_moyenne_s": 45.74,
+   "violations_nouvelles_11_regles": 0,
+   "tests_verts": 20
+  },
+  "sonnet-C": {
+   "passages": 20,
+   "cout_total_usd": 3.298,
+   "cout_moyen_usd": 0.16,
+   "duree_moyenne_s": 68.4,
+   "violations_nouvelles_11_regles": 0,
+   "tests_verts": 20
+  },
+  "opus-A": {
+   "passages": 10,
+   "cout_total_usd": 4.064,
+   "cout_moyen_usd": 0.41,
+   "duree_moyenne_s": 81.23,
+   "violations_nouvelles_11_regles": 0,
+   "tests_verts": 10
+  }
+ },
+ "revue": {
+  "remarques": 38,
+  "par_classe": {
+   "personne": 38
+  },
+  "couverture_harnais": 0.0,
+  "couverture_outils": 0.0,
+  "vues_par_personne": 1.0,
+  "avec_regle_voisine": 15,
+  "par_categorie": {
+   "architecture": {
+    "personne": 1
+   },
+   "argent / test": {
+    "personne": 1
+   },
+   "cas limite": {
+    "personne": 7
+   },
+   "code mort": {
+    "personne": 1
+   },
+   "code mort / exigence": {
+    "personne": 1
+   },
+   "conception": {
+    "personne": 1
+   },
+   "conception / gestion d'erreur": {
+    "personne": 1
+   },
+   "concurrence": {
+    "personne": 1
+   },
+   "contrat d'API": {
+    "personne": 2
+   },
+   "exigence": {
+    "personne": 1
+   },
+   "exigence / transactions": {
+    "personne": 1
+   },
+   "gestion d'erreur": {
+    "personne": 1
+   },
+   "nommage": {
+    "personne": 1
+   },
+   "performance": {
+    "personne": 1
+   },
+   "ressources": {
+    "personne": 1
+   },
+   "robustesse": {
+    "personne": 1
+   },
+   "style": {
+    "personne": 3
+   },
+   "sécurité": {
+    "personne": 1
+   },
+   "sécurité / données personnelles": {
+    "personne": 1
+   },
+   "temps / cas limite": {
+    "personne": 1
+   },
+   "test dupliqué": {
+    "personne": 1
+   },
+   "test faible": {
+    "personne": 5
+   },
+   "test faible / cas limite": {
+    "personne": 2
+   },
+   "tests modifiés": {
+    "personne": 1
+   }
+  }
+ },
+ "defauts": {
+  "injectes": 20,
+  "vus_par_regles": 0,
+  "vus_par_outils": 5,
+  "vus_par_tests": 3,
+  "vus_par_quelquun": 8,
+  "vus_par_personne": 12,
+  "vus_par_outils_signal_pertinent": 4,
+  "vus_par_quelquun_pertinent": 7,
+  "avec_regle_voisine": 8,
+  "avec_regle_voisine_vus_par_regles": 0
+ }
+}

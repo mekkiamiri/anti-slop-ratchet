@@ -1,0 +1,216 @@
+diff --git a/pom.xml b/pom.xml
+index fa9baa7..a38492e 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -44,11 +44,10 @@
+             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+             <scope>test</scope>
+         </dependency>
+-        <!-- Pour les exemples de R06 : le stockage en mémoire n'a pas de transactions. -->
++        <!-- @Transactional de l'archivage ; sans gestionnaire de transactions (stockage en mémoire), il est sans effet. -->
+         <dependency>
+             <groupId>org.springframework</groupId>
+             <artifactId>spring-tx</artifactId>
+-            <scope>test</scope>
+         </dependency>
+         <!-- Uniquement pour tester R06 sur @jakarta.transaction.Transactional (version gérée par Spring Boot). -->
+         <dependency>
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/ShopApplication.java b/src/main/java/io/github/mekkiamiri/ratchet/ShopApplication.java
+index a0ce6f5..f4b08b6 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/ShopApplication.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/ShopApplication.java
+@@ -2,9 +2,11 @@ package io.github.mekkiamiri.ratchet;
+ 
+ import org.springframework.boot.SpringApplication;
+ import org.springframework.boot.autoconfigure.SpringBootApplication;
++import org.springframework.scheduling.annotation.EnableScheduling;
+ 
+ /** Petite application de gestion de commandes : le terrain de jeu des règles anti-slop. */
+ @SpringBootApplication
++@EnableScheduling
+ public class ShopApplication {
+ 
+     public static void main(String[] args) {
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchivingJob.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchivingJob.java
+new file mode 100644
+index 0000000..77cd24b
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchivingJob.java
+@@ -0,0 +1,20 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import org.springframework.scheduling.annotation.Scheduled;
++import org.springframework.stereotype.Component;
++
++/** Tâche planifiée : archive les vieilles commandes chaque nuit à 02:00 UTC. */
++@Component
++public class OrderArchivingJob {
++
++    private final OrderService service;
++
++    public OrderArchivingJob(OrderService service) {
++        this.service = service;
++    }
++
++    @Scheduled(cron = "0 0 2 * * *", zone = "UTC")
++    public void run() {
++        service.archiveOldOrders();
++    }
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..c8c3dd9 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -6,22 +6,25 @@ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
+ import java.time.Clock;
++import java.time.Duration;
+ import java.util.List;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
+ 
+ /**
+  * Cas d'usage, avec injection par constructeur.
+  *
+- * <p>Pas de {@code @Transactional} ici : le stockage en mémoire n'a pas de gestionnaire de
+- * transactions, l'annotation ne ferait rien. La cohérence vient du verrou optimiste du stockage
+- * (voir {@link OrderRepository#save}). Avec JPA, on mettrait {@code @Transactional} sur ces
+- * méthodes publiques (règle R06).
++ * <p>Seul l'archivage est {@code @Transactional}. Le stockage en mémoire n'a pas de gestionnaire de
++ * transactions : l'annotation ne devient effective qu'avec un stockage transactionnel (JPA). La
++ * cohérence des autres cas d'usage vient du verrou optimiste (voir {@link OrderRepository#save}).
+  */
+ @Service
+ public class OrderService {
+ 
++    static final Duration ARCHIVE_AFTER = Duration.ofDays(30);
++
+     private static final Logger LOG = LoggerFactory.getLogger(OrderService.class);
+ 
+     private final OrderRepository orders;
+@@ -52,6 +55,14 @@ public class OrderService {
+         return orders.save(order);
+     }
+ 
++    /** Archive les commandes de plus de 30 jours, en une seule transaction. */
++    @Transactional
++    public int archiveOldOrders() {
++        int archived = orders.archiveCreatedBefore(clock.instant().minus(ARCHIVE_AFTER));
++        LOG.info("{} commande(s) archivée(s)", archived);
++        return archived;
++    }
++
+     public Order get(OrderId id) {
+         return orders.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+index 6c04dd7..fa4819c 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
++import java.time.Instant;
+ import java.util.Optional;
+ 
+ /** Port du domaine : le stockage est un détail d'infrastructure. */
+@@ -14,4 +15,12 @@ public interface OrderRepository {
+      * @throws ConcurrentOrderUpdateException si une autre écriture est passée entre-temps
+      */
+     Order save(Order order);
++
++    /**
++     * Déplace vers les archives les commandes créées strictement avant la date limite.
++     * Une commande modifiée pendant l'opération reste active : elle sera reprise la nuit suivante.
++     *
++     * @return le nombre de commandes archivées
++     */
++    int archiveCreatedBefore(Instant cutoff);
+ }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+index 1849154..3d3421b 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+@@ -4,6 +4,7 @@ import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import java.time.Instant;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.concurrent.ConcurrentHashMap;
+@@ -17,6 +18,7 @@ import org.springframework.stereotype.Repository;
+ public class InMemoryOrderRepository implements OrderRepository {
+ 
+     private final Map<OrderId, Order> orders = new ConcurrentHashMap<>();
++    private final Map<OrderId, Order> archived = new ConcurrentHashMap<>();
+ 
+     @Override
+     public Optional<Order> findById(OrderId id) {
+@@ -34,4 +36,22 @@ public class InMemoryOrderRepository implements OrderRepository {
+         });
+         return saved.copyAtVersion(saved.version());
+     }
++
++    @Override
++    public int archiveCreatedBefore(Instant cutoff) {
++        int count = 0;
++        for (Order stored : orders.values()) {
++            if (!stored.createdAt().isBefore(cutoff)) {
++                continue;
++            }
++            archived.put(stored.id(), stored);
++            // remove(clé, valeur) échoue si la commande a été réécrite entre-temps : on annule alors la copie.
++            if (orders.remove(stored.id(), stored)) {
++                count++;
++            } else {
++                archived.remove(stored.id(), stored);
++            }
++        }
++        return count;
++    }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..a3b649b 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
+ 
+ import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
+ import io.github.mekkiamiri.ratchet.order.domain.InvalidOrderException;
++import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
+@@ -12,6 +13,7 @@ import io.github.mekkiamiri.ratchet.order.domain.OrderStatus;
+ import io.github.mekkiamiri.ratchet.order.infrastructure.InMemoryOrderRepository;
+ import java.math.BigDecimal;
+ import java.time.Clock;
++import java.time.Duration;
+ import java.time.Instant;
+ import java.time.ZoneOffset;
+ import java.util.List;
+@@ -46,6 +48,20 @@ class OrderServiceTest {
+                 .hasMessageContaining("absente");
+     }
+ 
++    @Test
++    void archivesOnlyOrdersOlderThanThirtyDays() {
++        var repository = new InMemoryOrderRepository();
++        var archiving = new OrderService(repository, clock);
++        var old = repository.save(new Order(OrderId.newId(), "ada", clock.instant().minus(Duration.ofDays(31))));
++        var recent = repository.save(new Order(OrderId.newId(), "bob", clock.instant().minus(Duration.ofDays(29))));
++
++        assertThat(archiving.archiveOldOrders()).isEqualTo(1);
++
++        assertThat(repository.findById(old.id())).isEmpty();
++        assertThat(repository.findById(recent.id())).isPresent();
++        assertThat(archiving.archiveOldOrders()).isZero();
++    }
++
+     @Test
+     void twoConcurrentConfirmationsNeverBothSucceed() throws Exception {
+         ExecutorService pool = Executors.newFixedThreadPool(2);

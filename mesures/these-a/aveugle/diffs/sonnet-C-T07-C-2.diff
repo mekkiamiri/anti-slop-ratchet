@@ -1,0 +1,170 @@
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+index f64e1e1..afba98f 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java
+@@ -5,6 +5,8 @@ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderLine;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderNotFoundException;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import io.github.mekkiamiri.ratchet.order.domain.OrderStatus;
++import java.math.BigDecimal;
+ import java.time.Clock;
+ import java.util.List;
+ import org.slf4j.Logger;
+@@ -52,6 +54,16 @@ public class OrderService {
+         return orders.save(order);
+     }
+ 
++    /** Toutes les commandes comptent ; le chiffre d'affaires ne retient que les commandes confirmées. */
++    public OrderStats stats() {
++        List<Order> all = orders.findAll();
++        BigDecimal revenue = all.stream()
++                .filter(o -> o.status() == OrderStatus.CONFIRMED)
++                .map(Order::total)
++                .reduce(BigDecimal.ZERO, BigDecimal::add);
++        return new OrderStats(all.size(), revenue);
++    }
++
+     public Order get(OrderId id) {
+         return orders.findById(id).orElseThrow(() -> new OrderNotFoundException(id));
+     }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderStats.java b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderStats.java
+new file mode 100644
+index 0000000..4414834
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderStats.java
+@@ -0,0 +1,7 @@
++package io.github.mekkiamiri.ratchet.order.application;
++
++import java.math.BigDecimal;
++
++/** Nombre de commandes (tous statuts) et chiffre d'affaires des commandes confirmées. */
++public record OrderStats(long orderCount, BigDecimal totalRevenue) {
++}
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+index 6c04dd7..f6d580f 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
++import java.util.List;
+ import java.util.Optional;
+ 
+ /** Port du domaine : le stockage est un détail d'infrastructure. */
+@@ -14,4 +15,7 @@ public interface OrderRepository {
+      * @throws ConcurrentOrderUpdateException si une autre écriture est passée entre-temps
+      */
+     Order save(Order order);
++
++    /** Renvoie des copies de toutes les commandes enregistrées. */
++    List<Order> findAll();
+ }
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+index 1849154..db4ba31 100644
+--- a/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java
+@@ -4,6 +4,7 @@ import io.github.mekkiamiri.ratchet.order.domain.ConcurrentOrderUpdateException;
+ import io.github.mekkiamiri.ratchet.order.domain.Order;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderId;
+ import io.github.mekkiamiri.ratchet.order.domain.OrderRepository;
++import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.concurrent.ConcurrentHashMap;
+@@ -23,6 +24,11 @@ public class InMemoryOrderRepository implements OrderRepository {
+         return Optional.ofNullable(orders.get(id)).map(stored -> stored.copyAtVersion(stored.version()));
+     }
+ 
++    @Override
++    public List<Order> findAll() {
++        return orders.values().stream().map(stored -> stored.copyAtVersion(stored.version())).toList();
++    }
++
+     @Override
+     public Order save(Order order) {
+         Order saved = orders.compute(order.id(), (id, stored) -> {
+diff --git a/src/main/java/io/github/mekkiamiri/ratchet/order/web/StatsController.java b/src/main/java/io/github/mekkiamiri/ratchet/order/web/StatsController.java
+new file mode 100644
+index 0000000..4686051
+--- /dev/null
++++ b/src/main/java/io/github/mekkiamiri/ratchet/order/web/StatsController.java
+@@ -0,0 +1,21 @@
++package io.github.mekkiamiri.ratchet.order.web;
++
++import io.github.mekkiamiri.ratchet.order.application.OrderService;
++import io.github.mekkiamiri.ratchet.order.application.OrderStats;
++import org.springframework.web.bind.annotation.GetMapping;
++import org.springframework.web.bind.annotation.RestController;
++
++@RestController
++public class StatsController {
++
++    private final OrderService service;
++
++    public StatsController(OrderService service) {
++        this.service = service;
++    }
++
++    @GetMapping("/stats")
++    public OrderStats stats() {
++        return service.stats();
++    }
++}
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+index 9c88b95..2624ff1 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java
+@@ -39,6 +39,26 @@ class OrderServiceTest {
+         assertThat(confirmed.createdAt()).isEqualTo(clock.instant());
+     }
+ 
++    @Test
++    void statsCountAllOrdersAndSumConfirmedRevenue() {
++        var confirmed = service.create("ada", List.of(new OrderLine("CAFE", 2, new BigDecimal("1.50"))));
++        service.confirm(confirmed.id());
++        service.create("bob", List.of(new OrderLine("THE", 1, new BigDecimal("4.00"))));
++
++        var stats = service.stats();
++
++        assertThat(stats.orderCount()).isEqualTo(2);
++        assertThat(stats.totalRevenue()).isEqualByComparingTo("3.00");
++    }
++
++    @Test
++    void statsOfNoOrdersAreZero() {
++        var stats = service.stats();
++
++        assertThat(stats.orderCount()).isZero();
++        assertThat(stats.totalRevenue()).isEqualByComparingTo("0");
++    }
++
+     @Test
+     void anUnknownOrderIsABusinessErrorNotAnHttpOne() {
+         assertThatThrownBy(() -> service.get(new OrderId("absente")))
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+index 388ad82..af323cd 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java
+@@ -1,5 +1,6 @@
+ package io.github.mekkiamiri.ratchet.order.web;
+ 
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+@@ -46,6 +47,14 @@ class OrderControllerTest {
+                 .andExpect(status().isBadRequest());
+     }
+ 
++    @Test
++    void statsExposeOrderCountAndRevenue() throws Exception {
++        mvc.perform(get("/stats"))
++                .andExpect(status().isOk())
++                .andExpect(jsonPath("$.orderCount").isNumber())
++                .andExpect(jsonPath("$.totalRevenue").isNumber());
++    }
++
+     @Test
+     void anUnknownOrderIsA404() throws Exception {
+         mvc.perform(post("/orders/absente/confirm")).andExpect(status().isNotFound());

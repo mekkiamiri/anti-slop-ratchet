@@ -1,0 +1,340 @@
+{
+ "version": 1,
+ "defauts": [
+  {
+   "id": "D01",
+   "nom": "seuil décalé (> devient >=)",
+   "famille": "logique",
+   "copie": "sonnet-A/T01-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "if (subtotal.compareTo(DISCOUNT_THRESHOLD) > 0) {",
+     "apres": "if (subtotal.compareTo(DISCOUNT_THRESHOLD) >= 0) {"
+    }
+   ],
+   "pourquoi_realiste": "erreur de frontière classique, plausible à la relecture"
+  },
+  {
+   "id": "D02",
+   "nom": "calcul monétaire en double via doubleValue()",
+   "famille": "argent",
+   "copie": "sonnet-A/T01-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "return subtotal.multiply(DISCOUNT_RATE).setScale(2, RoundingMode.HALF_UP);",
+     "apres": "return BigDecimal.valueOf(subtotal.doubleValue() * DISCOUNT_RATE.doubleValue()).setScale(2, RoundingMode.HALF_UP);"
+    }
+   ],
+   "pourquoi_realiste": "R08 ne vise que new BigDecimal(double) ; le passage par double est la même erreur sous une autre forme"
+  },
+  {
+   "id": "D03",
+   "nom": "test sans assertion",
+   "famille": "test faible",
+   "copie": "sonnet-A/T01-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+     "avant": "        assertThat(order.subtotal()).isEqualByComparingTo(\"120.00\");\n        assertThat(order.discount()).isEqualByComparingTo(\"12.00\");\n        assertThat(order.total()).isEqualByComparingTo(\"108.00\");",
+     "apres": "        order.discount();\n        order.total();"
+    }
+   ],
+   "pourquoi_realiste": "le test exécute le code et reste vert quoi qu'il arrive"
+  },
+  {
+   "id": "D04",
+   "nom": "oracle faible (exists au lieu de la valeur)",
+   "famille": "test faible",
+   "copie": "sonnet-A/T01-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+     "avant": ".andExpect(jsonPath(\"$.discount\").value(12.0))\n                .andExpect(jsonPath(\"$.total\").value(108.0));",
+     "apres": ".andExpect(jsonPath(\"$.discount\").exists())\n                .andExpect(jsonPath(\"$.total\").isNumber());"
+    }
+   ],
+   "pourquoi_realiste": "80 % des tests d'agents ont des oracles faibles (arXiv 2606.18168)"
+  },
+  {
+   "id": "D05",
+   "nom": "horloge système au lieu de la date de création",
+   "famille": "temps",
+   "copie": "sonnet-A/T03-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "return createdAt.atZone(ZoneOffset.UTC).toLocalDate().plusDays(3);",
+     "apres": "return LocalDate.now(ZoneOffset.UTC).plusDays(3);"
+    }
+   ],
+   "pourquoi_realiste": "LocalDate.now() est autorisé par R09 (seul java.util.Date est visé) mais rend le calcul faux et non déterministe"
+  },
+  {
+   "id": "D06",
+   "nom": "année de semaine (YYYY) dans le format de date",
+   "famille": "temps",
+   "copie": "sonnet-A/T03-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java",
+     "avant": "DateTimeFormatter.ofPattern(\"dd/MM/yyyy\")",
+     "apres": "DateTimeFormatter.ofPattern(\"dd/MM/YYYY\")"
+    }
+   ],
+   "pourquoi_realiste": "bogue réel récurrent : faux seulement autour du 1er janvier"
+  },
+  {
+   "id": "D07",
+   "nom": "fuseau du serveur au lieu d'un fuseau fixé",
+   "famille": "temps",
+   "copie": "sonnet-A/T03-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "import java.time.ZoneOffset;",
+     "apres": "import java.time.ZoneId;"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "return createdAt.atZone(ZoneOffset.UTC).toLocalDate().plusDays(3);",
+     "apres": "return createdAt.atZone(ZoneId.systemDefault()).toLocalDate().plusDays(3);"
+    }
+   ],
+   "pourquoi_realiste": "le résultat dépend de la machine (poste de dev à Paris, CI en UTC)"
+  },
+  {
+   "id": "D08",
+   "nom": "exception avalée avec un log, l'API annonce un succès",
+   "famille": "erreurs",
+   "copie": "sonnet-A/T04-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+     "avant": "import java.io.UncheckedIOException;\n",
+     "apres": ""
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+     "avant": "import java.util.stream.Collectors;\n",
+     "apres": "import java.util.stream.Collectors;\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\n"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+     "avant": "public class OrderCsvExporter {\n",
+     "apres": "public class OrderCsvExporter {\n\n    private static final Logger LOG = LoggerFactory.getLogger(OrderCsvExporter.class);\n"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+     "avant": "            throw new UncheckedIOException(\"Export impossible vers \" + file, e);",
+     "apres": "            LOG.warn(\"Export impossible vers {}\", file, e);"
+    }
+   ],
+   "pourquoi_realiste": "R01 ne vise que catch (Exception) ; un catch (IOException) qui loggue et continue passe"
+  },
+  {
+   "id": "D09",
+   "nom": "null renvoyé au lieu d'une liste vide",
+   "famille": "null",
+   "copie": "sonnet-A/T04-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+     "avant": "    public List<Order> findAll() {\n        return orders.findAll();",
+     "apres": "    public List<Order> findAll() {\n        List<Order> all = orders.findAll();\n        return all.isEmpty() ? null : all;"
+    }
+   ],
+   "pourquoi_realiste": "POST /orders/export sur une base vide : NullPointerException, 500"
+  },
+  {
+   "id": "D10",
+   "nom": "fichier ouvert sans être fermé",
+   "famille": "ressources",
+   "copie": "sonnet-A/T04-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+     "avant": "            Files.writeString(file, content, StandardCharsets.UTF_8);",
+     "apres": "            java.io.Writer w = Files.newBufferedWriter(file, StandardCharsets.UTF_8);\n            w.write(content);\n            w.flush();"
+    }
+   ],
+   "pourquoi_realiste": "fuite de descripteur, invisible tant que l'export est rare"
+  },
+  {
+   "id": "D11",
+   "nom": "méthode dupliquée par copier-coller dans une classe utilitaire",
+   "famille": "duplication",
+   "copie": "sonnet-A/T04-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/CsvText.java",
+     "nouveau_fichier": true,
+     "apres": "package io.github.mekkiamiri.ratchet.order.web;\n\n/** Outils texte pour le CSV. */\nfinal class CsvText {\n\n    private CsvText() {\n    }\n\n    /** Guillemets RFC 4180, et neutralisation des formules pour les tableurs. */\n    static String escape(String value) {\n        String safe = !value.isEmpty() && \"=+-@\\t\\r\".indexOf(value.charAt(0)) >= 0 ? \"'\" + value : value;\n        if (safe.contains(\",\") || safe.contains(\"\\\"\") || safe.contains(\"\\n\") || safe.contains(\"\\r\")) {\n            return \"\\\"\" + safe.replace(\"\\\"\", \"\\\"\\\"\") + \"\\\"\";\n        }\n        return safe;\n    }\n}\n"
+    }
+   ],
+   "pourquoi_realiste": "l'agent recrée un utilitaire qui existe déjà ailleurs"
+  },
+  {
+   "id": "D12",
+   "nom": "transition d'état trop permissive (une commande annulée peut être expédiée)",
+   "famille": "logique",
+   "copie": "sonnet-A/T05-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+     "avant": "        if (status != OrderStatus.CONFIRMED) {",
+     "apres": "        if (status == OrderStatus.DRAFT) {"
+    }
+   ],
+   "pourquoi_realiste": "la condition « lit bien » et compile, aucun test ne couvre CANCELLED -> SHIPPED"
+  },
+  {
+   "id": "D13",
+   "nom": "test qui vérifie le mock au lieu du code",
+   "famille": "test faible",
+   "copie": "sonnet-A/T06-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/NotificationServiceTest.java",
+     "nouveau_fichier": true,
+     "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\nimport static org.assertj.core.api.Assertions.assertThat;\nimport static org.mockito.Mockito.mock;\nimport static org.mockito.Mockito.when;\n\nimport java.util.List;\nimport org.junit.jupiter.api.Test;\n\nclass NotificationServiceTest {\n\n    @Test\n    void keepsTheSentMessages() {\n        NotificationService notifications = mock(NotificationService.class);\n        when(notifications.sentMessages()).thenReturn(List.of(\"Commande 1 validée pour ada\"));\n\n        assertThat(notifications.sentMessages()).hasSize(1);\n    }\n}\n"
+    }
+   ],
+   "pourquoi_realiste": "le test est vert même si NotificationService est vide"
+  },
+  {
+   "id": "D14",
+   "nom": "liste partagée non thread-safe dans un singleton",
+   "famille": "concurrence",
+   "copie": "sonnet-A/T06-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+     "avant": "import java.util.concurrent.CopyOnWriteArrayList;",
+     "apres": "import java.util.ArrayList;"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+     "avant": "new CopyOnWriteArrayList<>()",
+     "apres": "new ArrayList<>()"
+    }
+   ],
+   "pourquoi_realiste": "un bean Spring est partagé entre requêtes concurrentes"
+  },
+  {
+   "id": "D15",
+   "nom": "notification envoyée avant l'enregistrement",
+   "famille": "logique",
+   "copie": "sonnet-A/T06-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+     "avant": "        Order saved = orders.save(order);\n        notifications.orderConfirmed(saved);",
+     "apres": "        notifications.orderConfirmed(order);\n        Order saved = orders.save(order);"
+    }
+   ],
+   "pourquoi_realiste": "si l'enregistrement échoue (verrou optimiste), le client a quand même été notifié"
+  },
+  {
+   "id": "D16",
+   "nom": "abstraction inutile (interface + fabrique pour une seule règle)",
+   "famille": "sur-ingénierie",
+   "copie": "sonnet-A/T07-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/RevenuePolicy.java",
+     "nouveau_fichier": true,
+     "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\nimport io.github.mekkiamiri.ratchet.order.domain.Order;\n\n/** Stratégie de prise en compte d'une commande dans le chiffre d'affaires. */\npublic interface RevenuePolicy {\n\n    boolean counts(Order order);\n}\n"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/ConfirmedOrdersRevenuePolicy.java",
+     "nouveau_fichier": true,
+     "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\nimport io.github.mekkiamiri.ratchet.order.domain.Order;\nimport io.github.mekkiamiri.ratchet.order.domain.OrderStatus;\n\n/** Seules les commandes confirmées comptent. */\npublic class ConfirmedOrdersRevenuePolicy implements RevenuePolicy {\n\n    @Override\n    public boolean counts(Order order) {\n        return order.status() == OrderStatus.CONFIRMED;\n    }\n}\n"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/RevenuePolicyFactory.java",
+     "nouveau_fichier": true,
+     "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\n/** Fabrique des stratégies de chiffre d'affaires. */\npublic final class RevenuePolicyFactory {\n\n    private RevenuePolicyFactory() {\n    }\n\n    public static RevenuePolicy create(String type) {\n        if (\"confirmed\".equals(type)) {\n            return new ConfirmedOrdersRevenuePolicy();\n        }\n        throw new IllegalArgumentException(\"Stratégie inconnue : \" + type);\n    }\n}\n"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+     "avant": "import io.github.mekkiamiri.ratchet.order.domain.OrderStatus;\n",
+     "apres": ""
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+     "avant": "                .filter(o -> o.status() == OrderStatus.CONFIRMED)",
+     "apres": "                .filter(RevenuePolicyFactory.create(\"confirmed\")::counts)"
+    }
+   ],
+   "pourquoi_realiste": "interface à une seule implémentation + fabrique à un seul cas : le motif le plus cité de sur-ingénierie des agents"
+  },
+  {
+   "id": "D17",
+   "nom": "@Transactional contourné par un appel interne (this.)",
+   "famille": "transactions",
+   "copie": "sonnet-A/T08-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+     "avant": "    /** Archive les commandes de plus de 30 jours, en une seule transaction. */",
+     "apres": "    /** Point d'entrée de la tâche de nuit. */\n    public int nightlyArchive() {\n        return archiveOldOrders();\n    }\n\n    /** Archive les commandes de plus de 30 jours, en une seule transaction. */"
+    },
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchiveJob.java",
+     "avant": "service.archiveOldOrders();",
+     "apres": "service.nightlyArchive();"
+    }
+   ],
+   "pourquoi_realiste": "R06 vise @Transactional sur méthode privée ou finale ; l'auto-invocation, plus fréquente, passe le proxy de la même façon"
+  },
+  {
+   "id": "D18",
+   "nom": "expression cron fausse (toutes les heures au lieu de chaque nuit)",
+   "famille": "configuration",
+   "copie": "sonnet-A/T08-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchiveJob.java",
+     "avant": "@Scheduled(cron = \"0 0 2 * * *\", zone = \"UTC\")",
+     "apres": "@Scheduled(cron = \"0 2 * * * *\", zone = \"UTC\")"
+    }
+   ],
+   "pourquoi_realiste": "champs cron décalés : compile, démarre, archive 24 fois par jour"
+  },
+  {
+   "id": "D19",
+   "nom": "test désactivé (@Disabled)",
+   "famille": "test faible",
+   "copie": "sonnet-A/T10-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+     "avant": "import org.junit.jupiter.api.Test;",
+     "apres": "import org.junit.jupiter.api.Disabled;\nimport org.junit.jupiter.api.Test;"
+    },
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+     "avant": "    @Test\n    void totalSumsAllLines() {",
+     "apres": "    @Test\n    @Disabled(\"instable, à revoir\")\n    void totalSumsAllLines() {"
+    }
+   ],
+   "pourquoi_realiste": "un agent qui n'arrive pas à faire passer un test le désactive : le build reste vert"
+  },
+  {
+   "id": "D20",
+   "nom": "oracle recalculé avec le code testé",
+   "famille": "test faible",
+   "copie": "sonnet-A/T10-A-1",
+   "remplacements": [
+    {
+     "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+     "avant": "        assertThat(order.total()).isEqualByComparingTo(\"10.00\");",
+     "apres": "        assertThat(order.total()).isEqualByComparingTo(order.lines().get(0).total());"
+    }
+   ],
+   "pourquoi_realiste": "l'attendu vient du code sous test : le test passe même si le calcul est faux"
+  }
+ ]
+}
