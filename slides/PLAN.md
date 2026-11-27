@@ -25,7 +25,7 @@ Arc : situation (1-3) · complication (4 : le silence, qualité ou cécité ?) �
 | n° | titre-phrase | objectif : le public pense… | preuve | durée |
 |---|---|---|---|---|
 | 1 | Mon harnais était aveugle, pas mon agent. | « Contre-intuitif : je veux savoir pourquoi. » | 180 tâches, 0 règle qui sonne, 13/20 défauts invisibles | 1 min |
-| 2 | Si vos capteurs ne sonnent jamais, personne ne sait si c'est bon signe. | « Je me suis déjà posé la question. » | citation de Böckeler, martinfowler.com, 02/04/2026 | 1 min 30 |
+| 2 | Si vos capteurs ne sonnent jamais, personne ne sait si c'est bon signe. | « Je me suis déjà posé la question. » | citation de Böckeler, martinfowler.com, 02/04/2026 ; définition du harnais en une ligne | 1 min 30 |
 | 3 | J'ai changé 11 remarques de revue en 11 règles qui bloquent l'agent. | « C'est un vrai harnais, comme le mien. » | une règle (R08) + le hook PostToolUse/Stop (RATCHET.md) | 1 min 30 |
 | 4 | Sur 180 tâches, mes règles n'ont jamais sonné. | « Bonne nouvelle… ou pas ? » | 180 passages, 0 erreur du catalogue, dette nettoyée 30/30 (mesures/README.md) | 1 min 30 |
 | 5 | Peut-être que l'agent triche : on sait que les modèles touchent aux tests. | « Plausible, j'ai lu ça. » | ImpossibleBench, arXiv 2510.20270 | 1 min 30 |
@@ -38,7 +38,7 @@ Arc : situation (1-3) · complication (4 : le silence, qualité ou cécité ?) �
 | 12 | Mes règles n'attrapent aucun des 20 défauts injectés : 13 passent sans aucun bruit. | « Mon harnais est peut-être aveugle aussi. » | tableau : défauts 0/4/3/13 sur 20 (mécanique) ; remarques du relecteur simulé 0/38 ; aucune règle n'a sonné sur 50 copies | 3 min |
 | 13 | Du java.time propre, et une livraison annoncée un jour trop tôt. | « Voilà à quoi ressemble un défaut de 2026. » | Order.java:87, OrderTest.java:25-26 | 2 min 30 |
 | 14 | « 0 violation, tests verts » : c'est aussi ce que rend un agent qui n'a rien fait. | « Je vérifie le diff dès demain. » | 15 passages vides comptés réussis | 2 min |
-| 15 | Mesurez votre harnais comme vous mesurez vos tests. | « Je repars avec une méthode et deux garde-fous. » | les 3 gestes + limites | 3 min |
+| 15 | Mesurez votre harnais comme vous mesurez vos tests. | « Je repars avec une méthode et deux garde-fous. » | les 3 gestes + limites | 3 min 30 |
 | 16 | Mon agent ne trichait pas : mes règles regardaient les erreurs d'hier. Et les vôtres ? | La phrase à retenir, et la question à se poser lundi. | dépôt public, données brutes | 1 min 30 |
 
 Total : 30 min.

@@ -85,3 +85,60 @@ Ce que le résultat change :
 - Si k < 7 sur 10 : retirer « 38 » de la proposition (garder « une revue simulée de 10 diffs ») et dire en note « l'agent relecteur exagère : j'en garde k sur 10 ».
 - Résultat à reporter dans `mesures/these-a/aveugle/README.md` (section Limites) : « échantillon de 10 remarques relu par un humain le …, k tiennent ».
 
+## Revue 3 : le comité
+
+### Grille (8 critères sur 5, seuil 32/40, aucun sous 3)
+
+| Critère | Avant | Après | Justification |
+|---|---|---|---|
+| Unicité | 4 | 4 | Mesurer le harnais lui-même (couverture, injection de défauts) : angle rare. Risque de confusion avec le talk ArchUnit de Devoxx BE 2026, désamorcé dans la 1re note. |
+| Légitimité | 3 | 3 | Tech Lead, référent IA, 3 campagnes publiques ; pas mainteneur, PR proposées mais pas fusionnées. Ne monte pas sans nouveau fait. |
+| Promesse | 4 | 4 | « Vous repartirez avec » : une méthode et deux garde-fous concrets, chiffrés. |
+| Concret | 5 | 5 | 374 passages d'agent, données brutes, injecteur, démo live. |
+| Actualité | 5 | 5 | « Harness engineering » est le sujet de 2026 ; l'angle (mesurer plutôt qu'empiler) est mûr. |
+| Clarté | 3 | 4 | Avant : « harness » non défini, et la proposition anglaise gardait le contresens « 12 tickets that cannot be done without breaking a rule ». Après : harnais défini dans la 1re phrase, contresens retiré. |
+| Risque speaker | 2 | 3 | Avant : aucune trace de scène dans les notes. Après : dépôt soigné avec CI, slides en ligne, format court (Tools-in-Action), démo avec plan B. Reste à 3 tant que les meetups/vidéo ne sont pas renseignés. |
+| Format | 4 | 5 | Plan minuté ajouté aux notes ; la table de PLAN.md tombe sur 30 min pile (elle faisait 29 min 30 après la revue 1 : slide 15 passée à 3 min 30). |
+| **Total** | **30** | **33** | Seuil atteint, aucun critère sous 3. |
+
+### Trois membres du comité
+
+- **L'expert blasé** : « Encore des règles ArchUnit pour le code d'IA ? On a eu ce talk à Devoxx BE. Et une revue faite par un LLM, sérieusement ? » → La 1re note répond (les règles = une slide, le sujet = la mesure du harnais) ; le titre de la slide 12 et l'abstract s'appuient sur l'injection mécanique, la revue simulée est annoncée comme telle. Il dira probablement : « Au moins il dit ses limites et publie ses données. »
+- **Le généraliste** : « Je ne sais pas ce qu'est un harnais, mais "mon agent ne trichait pas" m'accroche. » → Harnais défini dans la 1re phrase de l'abstract et sur la slide 2.
+- **Le défenseur de la diversité des sujets** : « Trente propositions sur les agents ; celle-ci rapporte un résultat négatif contre l'attente du speaker, avec un protocole rejouable. C'est la seule qui mesure au lieu de promettre. » → Point fort à garder. Ce qui l'aiderait encore : nommer l'employeur (industrie, peu présente en conf), si l'accord est obtenu.
+
+### Test des 30 secondes
+
+Titre + 1re phrase : « Mon harnais était aveugle, pas mon agent » / « J'ai changé 11 remarques de revue récurrentes en règles qui bloquent mon agent de code : c'est son harnais. » On comprend le dispositif, l'idée reçue (l'agent triche) et la conclusion inverse. Passe. Abstract FR : 915 caractères (≤ 1200), 3 paragraphes, « Vous repartirez avec : » 3 éléments.
+
+### Un débutant comprend-il chaque slide ?
+
+| Slide | Obstacle | Correction |
+|---|---|---|
+| 2 | « harnais », « capteurs » jamais définis à l'écran | Ligne ajoutée : « Harnais = tout ce qu'on met autour de l'agent : des consignes avant, des capteurs après (tests, linters, règles) » |
+| 3 | « hook » | « Un hook (script branché sur l'agent) lance les règles… » |
+| 7 | « deny » | corrigé en revue 2 (« lecture seule ») |
+| 11 | « mutation testing » | dit en note avec sa définition (« on casse exprès, on regarde qui sonne ») ; la slide dit « défauts injectés », compréhensible seul |
+| 12 | « CPD » | corrigé en revue 2 (« analyse statique ») |
+| 8 | « R03 », `Optional.get()` | gardé : public Java intermédiaire ; la note explique la règle |
+
+### Problèmes trouvés
+
+| Gravité | Où | Problème | Correction |
+|---|---|---|---|
+| 🔴 | PROPOSITION-EN | Le contresens de la slide 6 survivait dans l'abstract anglais (« 12 tickets that cannot be done without breaking a rule »), raté en revue 2. | « 12 tickets that demand what a rule forbids ». Abstract réécrit sur le modèle FR. |
+| 🔴 | notes au comité | Risque speaker à 2/5 : aucune trace de scène, pas de plan minuté, pas de lien vers les slides. | Notes au format de modeles.md : dépôt + CI + commandes sans modèle, slides en ligne, démo et plan B, plan minuté, Quickie possible. Expérience de scène et accord employeur laissés en champs à compléter (rien inventé). |
+| 🟡 | abstract FR/EN | « harness » jargon en tête ; promesse EN listait encore « trois gestes » dans l'ancien ordre. | Harnais défini dans la 1re phrase ; promesse alignée sur PLAN.md (méthode + deux garde-fous). |
+| 🟡 | PLAN | Total 29 min 30 après la revue 1. | Slide 15 à 3 min 30 (limites + gestes). |
+| 🟡 | track | « Development practices » sans justification. | Track « Méthodologie et pratiques de développement », choisi parce que le sujet y est rare (dans le track IA, il serait un parmi trente). |
+
+## Décisions qui restent à Mekki
+
+1. **Relire l'échantillon des 10 remarques** (revue 2, 20 min), remplir « Tient ? », puis compléter la phrase de la note de la slide 11 et la section Limites du README de la mesure. Si moins de 7 sur 10 tiennent : retirer « 38 » de la proposition (voir les règles plus haut).
+2. **Expérience de scène** (meetups, JUG, interne, vidéo) : seul levier pour faire passer le risque speaker de 3 à 4. Sans rien, la grille reste à 33.
+3. **Accord employeur** et choix de nommer l'entreprise (atout pour le comité, à valider avec la communication) ; rien n'est nommé aujourd'hui.
+4. **Talk ArchUnit de Devoxx BE 2026** : non retrouvé en ligne pendant la revue. Ajouter le titre et le lien dans la 1re note, ou écrire « un talk récent » si la référence n'est pas sûre.
+5. **Vidéo de secours de la démo** : promise dans les notes, pas encore enregistrée. La copie de démo se reconstruit avec `git apply mesures/these-a/aveugle/diffs/sonnet-A-T01-A-1.diff` (vérifié avec `git apply --check`), puis `injecter.py --seulement D02` ; à répéter une fois avant d'enregistrer.
+6. **Titre** : FR et EN gardés (« Mon harnais était aveugle, pas mon agent » / « My Agent Wasn't Cheating. My Harness Was Blind. »). Alternative si le comité trouve le mot « harnais » obscur : « Mesurez votre harnais comme vous mesurez vos tests ».
+
+Grille finale : **33/40** (unicité 4, légitimité 3, promesse 4, concret 5, actualité 5, clarté 4, risque speaker 3, format 5).

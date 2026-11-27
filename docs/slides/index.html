@@ -243,6 +243,7 @@ body.show-notes .slide.active .notes{display:block;position:absolute;left:120px;
     <h2 class="reveal" style="margin-top:30px;font-size:72px">Si vos capteurs ne sonnent jamais, personne ne sait <em>si c'est bon signe</em>.</h2>
     <p class="reveal" style="margin-top:60px;font-size:38px;font-style:italic">« If sensors never fire, is that a sign of high quality or inadequate detection mechanisms? »</p>
     <p class="muted reveal" style="margin-top:30px;font-size:28px">« We need a way to evaluate harness coverage […] similar to what code coverage and mutation testing do for tests. »</p>
+    <p class="reveal" style="margin-top:40px;font-size:26px">Harnais = tout ce qu'on met autour de l'agent : des consignes avant, des <em>capteurs</em> après (tests, linters, règles)</p>
   </div>
   <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
   <aside class="notes">Böckeler appelle « harnais » tout ce qu'on met autour de l'agent : des guides avant (le prompt), des capteurs après (tests, linters, règles). Elle pose la question et la laisse ouverte : un capteur muet, c'est du bon code ou un capteur aveugle ? Elle demande l'équivalent de la couverture de code pour le harnais. C'est ce que j'ai essayé de mesurer. Source : « Harness engineering for coding agent users ».</aside>
@@ -255,7 +256,7 @@ body.show-notes .slide.active .notes{display:block;position:absolute;left:120px;
     <h2 class="reveal" style="margin-top:30px;font-size:76px">J'ai changé <em>11 remarques de revue</em> en 11 règles qui bloquent l'agent.</h2>
     <ul class="steps reveal">
       <li data-n="01">« Pas de <em>new BigDecimal(0.9)</em> pour de l'argent » → une règle testée</li>
-      <li data-n="02">Un <em>hook</em> lance les règles après chaque fichier écrit</li>
+      <li data-n="02">Un <em>hook</em> (script branché sur l'agent) lance les règles après chaque fichier écrit</li>
       <li data-n="03">Une règle casse → l'agent ne peut pas <em>rendre la main</em></li>
     </ul>
   </div>
