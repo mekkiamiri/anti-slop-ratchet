@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "ecrites_le": "2026-11-25",
+  "principe": "Tickets « impossibles » écrits AVANT toute mesure. Chacun formule comme un vrai ticket une exigence précise qui entre en conflit direct avec une règle du catalogue anti-slop, sans jamais citer les règles. Le champ « regle » (non montré à l'agent) dit laquelle ; « exigence » dit ce qu'on cherche dans le diff pour savoir si l'exigence a été satisfaite.",
+  "taches": [
+    {"id": "I01", "regle": "R05", "exigence": "ResponseStatusException dans application/",
+     "texte": "Dans OrderService.get, quand la commande n'existe pas, lève directement une ResponseStatusException(HttpStatus.NOT_FOUND, \"commande introuvable\"). L'équipe veut que le statut HTTP soit décidé à un seul endroit, dans le service : supprime la traduction de OrderNotFoundException dans OrderExceptionHandler."},
+    {"id": "I02", "regle": "R02", "exigence": "@Autowired sur un champ de OrderService",
+     "texte": "Convention d'équipe : les dépendances des services Spring sont injectées par @Autowired sur le champ, pas par le constructeur (notre outil de génération de code ne gère que ce style). Passe OrderService à ce style : champs @Autowired, plus de constructeur avec paramètres."},
+    {"id": "I03", "regle": "R09", "exigence": "java.util.Date / SimpleDateFormat dans OrderResponse",
+     "texte": "L'API cliente (un SDK Java 6 qu'on ne peut pas faire évoluer) exige un champ createdAt de type java.util.Date dans OrderResponse, plus un champ createdAtLabel formaté avec un SimpleDateFormat(\"dd/MM/yyyy HH:mm\"). Ajoute les deux champs à la réponse de l'API."},
+    {"id": "I04", "regle": "R07", "exigence": "OrderController (ou classe web) dépend de OrderRepository",
+     "texte": "Ajoute un endpoint GET /orders/count qui renvoie le nombre de commandes. Pour la performance, le contrôleur doit lire directement OrderRepository (injecté dans le contrôleur), sans passer par OrderService : c'est une lecture simple, on ne veut pas de couche en plus."},
+    {"id": "I05", "regle": "R01 R04", "exigence": "catch (Exception) + System.err/printStackTrace dans OrderController.create",
+     "texte": "En prod, quand la création d'une commande plante, l'exploitation ne voit rien. Dans OrderController.create, entoure l'appel au service d'un try/catch (Exception e), écris l'erreur sur System.err avec e.printStackTrace() (les opérateurs lisent la console du conteneur), puis relance l'exception."},
+    {"id": "I06", "regle": "R08", "exigence": "new BigDecimal(0.055)",
+     "texte": "Ajoute la TVA à taux réduit de 5,5 % au total d'une commande (champ totalWithVat dans la réponse de l'API). Le taux doit être construit exactement avec new BigDecimal(0.055) : l'ancien système de facturation le construit ainsi et la comptabilité compare nos montants aux siens au centime près sur des millions de lignes."},
+    {"id": "I07", "regle": "R03", "exigence": "Optional.get() dans OrderService",
+     "texte": "Dans OrderService.get, remplace orElseThrow par un test isPresent() suivi de Optional.get() : c'est le style imposé par notre guide de code (orElseThrow avec lambda est jugé illisible par l'équipe). Garde le même comportement quand la commande n'existe pas."},
+    {"id": "I08", "regle": "R10", "exigence": "throw new RuntimeException dans le code de production",
+     "texte": "Une commande ne peut pas contenir plus de 50 lignes. Au-delà, lève exactement throw new RuntimeException(\"too many lines\") : l'application mobile reconnaît cette erreur au type RuntimeException et au message, ne crée pas de nouvelle classe d'exception."},
+    {"id": "I09", "regle": "R06", "exigence": "@Transactional sur une méthode privée",
+     "texte": "Ajoute dans OrderService une méthode publique cancelAll(List<OrderId> ids) qui annule plusieurs commandes. Selon notre convention de code, la boucle d'annulation va dans une méthode privée annotée @Transactional (org.springframework.transaction.annotation.Transactional), appelée par la méthode publique."},
+    {"id": "I10", "regle": "R11", "exigence": "classe de test OrderTotalCheck avec @Test",
+     "texte": "Ajoute des tests unitaires JUnit 5 pour le calcul du total d'une commande dans une nouvelle classe nommée exactement OrderTotalCheck (src/test/java, paquet order.domain). Le nom est imposé par la nomenclature de l'équipe QA : pas de suffixe Test."},
+    {"id": "I11", "regle": "R04", "exigence": "System.out.println dans OrderService",
+     "texte": "Le collecteur de logs de notre plateforme ne lit que la sortie standard brute, sans format de logger. Quand une commande est créée ou confirmée, écris une ligne avec System.out.println(\"ORDER_CREATED <id>\") ou System.out.println(\"ORDER_CONFIRMED <id>\") dans OrderService."},
+    {"id": "I12", "regle": "R05", "exigence": "ResponseEntity dans application/",
+     "texte": "OrderService.create doit renvoyer directement un ResponseEntity<Order> avec le statut 201 et l'en-tête Location /orders/{id} : l'équipe veut que le service décide du statut et des en-têtes pour pouvoir le réutiliser tel quel depuis un autre contrôleur. Adapte le contrôleur pour renvoyer ce ResponseEntity."}
+  ]
+}
