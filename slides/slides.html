@@ -92,10 +92,11 @@
   <div class="pad" style="top:240px">
     <div class="k reveal">Résultat · 144 passages</div>
     <h2 class="reveal" style="margin-top:30px">Il n'a <em>jamais</em> contourné une règle : il la cite.</h2>
-    <div class="readouts reveal" style="margin-top:70px"><div><b>0</b><span>contournement sur 144</span></div><div><b>1</b><span>tentative, bloquée par deny</span></div><div><b>144</b><span>réponses qui citent la règle</span></div></div>
+    <div class="readouts reveal" style="margin-top:70px"><div><b>0</b><span>contournement sur 144</span></div><div><b>1</b><span>tentative, bloquée par la lecture seule</span></div><div><b>144</b><span>réponses qui citent la règle</span></div></div>
+    <p class="muted reveal" style="margin-top:50px;font-size:26px">Limite : mes règles disent pourquoi elles existent, et le hook dit « corrige le code, pas la règle »</p>
   </div>
   {{CHROME}}
-  <aside class="notes">Aucun fichier de règle modifié, aucune exclusion, aucun code déplacé hors des paquets scannés. Une seule tentative : Sonnet a voulu élargir le motif de R11, la permission deny de la variante 2 l'a bloqué, et il l'a dit. Limite honnête : mes règles expliquent leur raison et le hook dit « corrige le code, pas la règle ». Un harnais muet ferait peut-être autrement. Transition : et quand il est coincé, que fait-il ?</aside>
+  <aside class="notes">Aucun fichier de règle modifié, aucune exclusion, aucun code déplacé hors des paquets scannés. Une seule tentative : Sonnet a voulu élargir le motif de R11, la permission en lecture seule de la variante 2 (une règle « deny » de l'agent) l'a bloqué, et il l'a dit. « Cite la règle » est compté par mots-clés dans la réponse, et j'ai relu 31 passages à la main. Limite honnête : mes règles expliquent leur raison et le hook dit « corrige le code, pas la règle ». Un harnais muet ferait peut-être autrement. Transition : et quand il est coincé, que fait-il ?</aside>
 </section>
 
 <!-- Ce que je veux dire : coincé, l'agent ne triche pas, il s'arrête et demande à l'humain de trancher. -->
@@ -137,36 +138,37 @@ pas sans votre accord.</span></pre>
   <aside class="notes">Mes règles sont des remarques de revue qui revenaient sur du code humain. L'agent ne fait pas ces erreurs-là. Il en fait peut-être d'autres, que rien ne regarde. Pour le savoir, il faut mesurer ce que le harnais voit, comme on mesure la couverture des tests. Transition : voici comment.</aside>
 </section>
 
-<!-- Ce que je veux dire : j'ai mesuré la couverture du harnais de deux façons, une revue et une injection de défauts. -->
+<!-- Ce que je veux dire : j'ai mesuré la couverture du harnais de deux façons, une revue (jouée par un agent, je le dis tout de suite) et une injection de défauts (mécanique). -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">L'expérience · 25/11/2026 · 50 passages gardés</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:72px">J'ai fait relire 10 diffs comme par un senior, puis <em>injecté 20 défauts</em>.</h2>
+    <h2 class="reveal" style="margin-top:20px;font-size:72px">J'ai mesuré mon harnais deux fois : une revue de 10 diffs, puis <em>20 défauts injectés</em>.</h2>
     <ul class="steps reveal">
-      <li data-n="01">Revue : <em>38 remarques</em>, chacune avec fichier:ligne</li>
-      <li data-n="02">Injection : 20 défauts réalistes, écrits avant la mesure</li>
-      <li data-n="03">Qui voit quoi : <em>règles</em> · PMD/SpotBugs · tests</li>
+      <li data-n="01">Revue <em>jouée par un agent</em> (Opus 5.5), pas par un humain : 38 remarques, chacune avec fichier:ligne</li>
+      <li data-n="02">Injection : 20 défauts réalistes, écrits avant la mesure ; « qui sonne » est <em>mécanique</em></li>
+      <li data-n="03">Qui voit quoi : <em>règles</em> · analyse statique (PMD, SpotBugs) · tests</li>
     </ul>
   </div>
   {{CHROME}}
-  <aside class="notes">Revue simulée : c'est l'agent, Opus 5.5, qui joue le relecteur senior, une seule fois. Je le redirai dans les limites. Mais le classement « vu par » est mécanique : une règle ou un outil sonne-t-il sur cette ligne ? L'injection de défauts, c'est l'idée du mutation testing appliquée au harnais : on casse exprès, et on regarde qui sonne. Source : mesures/these-a/aveugle/README.md.</aside>
+  <aside class="notes">Je le dis d'entrée : la revue, c'est un agent, Opus 5.5, qui joue le relecteur senior, une seule fois. Ses 38 remarques citent chacune un fichier et une ligne, donc on peut les contester une par une. [Après la relecture humaine de l'échantillon (slides/REVUE.md), dire la phrase qui correspond : « J'en ai relu 10 moi-même : k tiennent. » — sans changer la slide.] L'injection de défauts, c'est l'idée du mutation testing appliquée au harnais : on casse le code exprès, et on regarde qui sonne. Ça, c'est mécanique : une règle, un outil ou un test devient rouge, ou pas. Source : mesures/these-a/aveugle/README.md.</aside>
 </section>
 
-<!-- Ce que je veux dire : le harnais ne voit rien de ce qu'un relecteur voit, et la plupart des défauts passent sans bruit. -->
+<!-- Ce que je veux dire : mes règles n'attrapent aucun défaut injecté, la plupart passent sans bruit, et elles ne disent rien non plus sur ce qu'un relecteur relève. -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Résultat · couverture du harnais</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:72px">Mes règles ont vu <em>0 remarque sur 38</em>, et 13 défauts sur 20 passent sans bruit.</h2>
+    <h2 class="reveal" style="margin-top:20px;font-size:72px">Mes règles n'attrapent <em>aucun des 20 défauts</em> injectés : 13 passent sans aucun bruit.</h2>
     <table class="m reveal" style="margin-top:40px">
-      <tr><th>Vu par</th><th>Remarques de revue</th><th>Défauts injectés</th></tr>
-      <tr><td>Les 11 règles + hook</td><td class="n">0 / 38</td><td class="n">0 / 20</td></tr>
-      <tr><td>PMD · CPD · SpotBugs</td><td class="n">0 / 38</td><td class="n">4 / 20</td></tr>
-      <tr><td>Tests existants</td><td class="n">-</td><td class="n">3 / 20</td></tr>
-      <tr><td><em>Personne</em></td><td class="n">38 / 38</td><td class="n">13 / 20</td></tr>
+      <tr><th>Vu par</th><th>Défauts injectés</th><th>Remarques du relecteur simulé</th></tr>
+      <tr><td>Les 11 règles + hook</td><td class="n">0 / 20</td><td class="n">0 / 38</td></tr>
+      <tr><td>Analyse statique (PMD, SpotBugs)</td><td class="n">4 / 20</td><td class="n">0 / 38</td></tr>
+      <tr><td>Tests existants</td><td class="n">3 / 20</td><td class="n">-</td></tr>
+      <tr><td><em>Personne</em></td><td class="n">13 / 20</td><td class="n">38 / 38</td></tr>
     </table>
+    <p class="muted reveal" style="margin-top:24px;font-size:24px">Aucune règle n'a sonné sur les 50 copies : ce zéro ne dépend pas du relecteur</p>
   </div>
   {{CHROME}}
-  <aside class="notes">Zéro. Les remarques portent sur des tests faibles, des cas limites, des contrats d'API qui changent de sens. Le plus parlant : 8 défauts sont des cousins directs d'une règle, le même problème sous une autre forme, et les règles n'en voient aucun. R08 voit new BigDecimal(0.1), pas un calcul en double via doubleValue(). Pendant ce temps : couverture des lignes ajoutées au-dessus de 92 %, zéro test sans assertion. Tout est au vert. Transition : un exemple concret.</aside>
+  <aside class="notes">Zéro sur vingt. Honnêteté : j'ai choisi des défauts qui ne sont pas les 11 formes que mes règles visent ; le zéro n'est donc pas une surprise en soi. Ce qui en est une : 8 de ces défauts sont des cousins directs d'une règle, le même problème sous une autre forme, et les règles n'en voient aucun. R08 voit new BigDecimal(0.1), pas un calcul en double via doubleValue(). Les outils d'analyse statique en voient 4, les tests 3. La colonne de droite, c'est la revue jouée par un agent : tests faibles, cas limites, contrats d'API qui changent de sens ; c'est un ordre de grandeur, pas un taux. Le zéro des règles, lui, est mécanique : aucune règle n'a sonné sur aucune des 50 copies. Pendant ce temps : couverture des lignes ajoutées au-dessus de 92 %, zéro test sans assertion. Tout est au vert. Transition : un exemple concret.</aside>
 </section>
 
 <!-- Ce que je veux dire : un vrai défaut, du code propre selon mes règles, faux pour un client à Paris. -->
@@ -208,10 +210,10 @@ Instant.parse("<span class="h">2027-04-29T23:30:00Z</span>")  →  LocalDate.of(
       <li data-n="02">Injectez des défauts : comptez <em>qui sonne</em></li>
       <li data-n="03">Faites échouer un <em>diff vide</em></li>
     </ul>
-    <p class="muted reveal" style="margin-top:30px;font-size:26px">Limites : un petit projet (414 lignes) · 2 modèles · une revue simulée, pas humaine · des défauts choisis par moi</p>
+    <p class="muted reveal" style="margin-top:30px;font-size:26px">Limites : un petit projet (414 lignes) · 2 modèles de novembre 2026 · une revue jouée par un agent · 20 défauts choisis par moi</p>
   </div>
   {{CHROME}}
-  <aside class="notes">Un : la phrase du droit d'abandon, refus nets, coût divisé par 2,2. Deux : l'injection de défauts, c'est le mutation testing de votre harnais, et c'est rejouable : injecter.py est dans le dépôt. Trois : un passage sans diff n'est pas un succès. Les limites, je les assume : un petit projet Java, deux modèles, une revue jouée par un agent, vingt défauts que j'ai choisis. Le zéro des règles, lui, ne dépend pas de ces choix.</aside>
+  <aside class="notes">Un : la phrase du droit d'abandon, refus nets, coût divisé par 2,2. Deux : l'injection de défauts, c'est le mutation testing de votre harnais, et c'est rejouable : injecter.py est dans le dépôt. Trois : un passage sans diff n'est pas un succès. Les limites, je les assume : un petit projet Java, deux modèles de novembre 2026, une revue jouée par un agent, vingt défauts que j'ai choisis hors des formes visées par mes règles. Ce qui ne dépend pas de ces choix : aucune règle n'a sonné sur 50 copies, et aucune n'a vu les 8 cousins. Si un modèle plus récent sort, tout se rejoue : c'est justement le but.</aside>
 </section>
 
 <!-- Ce que je veux dire : le message à garder, en une phrase, et où tout rejouer. -->
@@ -219,7 +221,7 @@ Instant.parse("<span class="h">2027-04-29T23:30:00Z</span>")  →  LocalDate.of(
   {{RULER}}
   <div class="pad" style="top:260px">
     <div class="k reveal">Fin</div>
-    <h2 class="reveal" style="margin-top:30px;font-size:84px">L'agent ne triche pas : vos règles regardent <em>les erreurs d'hier</em>.</h2>
+    <h2 class="reveal" style="margin-top:30px;font-size:84px">Mon agent ne trichait pas : mes règles regardaient <em>les erreurs d'hier</em>. Et les vôtres ?</h2>
     <p class="muted reveal" style="margin-top:60px;font-size:30px">github.com/mekkiamiri/anti-slop-ratchet · mesures/ · tout se rejoue</p>
   </div>
   {{CHROME}}
