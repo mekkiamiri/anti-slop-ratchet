@@ -1,6 +1,68 @@
-# Revues du deck « Mon harnais était aveugle, pas mon agent »
+# Revues du deck « Votre agent suit vos règles. Que laissent-elles passer ? » (titre v3 : « Mon harnais était aveugle, pas mon agent »)
 
-## Deck v3 (28/11/2026, branche `deck-v3`) : le chemin en 4 étapes, l'outil, la revue croisée
+## Deck v4 (28/11/2026, branche `deck-v4`) : mots expliqués, aucun contresens, captures réelles
+
+Leçons tirées de la relecture par Mekki du talk voisin de la série, appliquées ici :
+1. Aucun mot imagé ni jargon laissé sans explication en clair à sa première apparition (agent de code, harnais, linter, ArchUnit, hook, mutation testing, revue croisée, juge à l'aveugle, trou, oracle, mutant, PIT, diff vide). « Sonner » devient « échouer » ; « slop » disparaît du texte des slides.
+2. Aucun contresens : le talk ne dit pas que les règles, les tests ou ArchUnit sont inutiles. Titre changé (plus de « aveugle ») ; « Je ne vous dirai pas de les jeter » dès la slide 1 ; slide 10 « Ce que ce talk ne dit pas » ; chaque slide de « 0 » dit aussi ce qui marche (0/144, 30/30, linters et tests 7/20, une règle ArchUnit ferme un trou).
+3. Six captures réelles, rendues en HTML sombre puis capturées par WebKit headless (`slides/captures/capturer.sh`), sans barre d'adresse ni chemin local :
+
+| Capture | Slide | Légende |
+|---|---|---|
+| `docs/slides/img/01-regle-archunit.png` | 3 | La règle ArchUnit R03 « pas d'Optional.get() » et son vrai message d'échec dans `mvn test` (OrderService.java:61). |
+| `docs/slides/img/02-hook-renvoie.png` | 4 | La sortie du hook quand l'agent veut finir (« Corrige le code, pas la règle ») puis l'extrait réel de la réponse de l'agent, qui remet le code conforme et demande à l'humain de trancher. Sortie du hook rejouée sur le même code (les retours du hook ne sont pas gardés dans la transcription) ; réponse : passage V2, ticket I07, 25/11/2026, coupes […]. |
+| `docs/slides/img/06-revue-croisee.png` | 7 | Les deux relecteurs (agent de revue, juge à l'aveugle) sur le même défaut UTC, et le croisement : 0/34 vus par les règles, les linters et les tests. |
+| `docs/slides/img/03-diff-order-utc.png` | 8 | Le diff de l'agent : `ZoneOffset.UTC` surligné dans Order.java, et son test qui attend le 2 mai pour une commande passée le 30 avril à 1 h 30 à Paris. |
+| `docs/slides/img/04-harness-mutant-avant.png` | 12 | La sortie réelle de harness-mutant : 7 défauts sur 13, les 6 trous et, pour chacun, comment l'attraper. |
+| `docs/slides/img/05-harness-mutant-apres.png` | 13 | La sortie après le patch « une règle, deux tests » : 10 sur 13, 3 trous restants (tests affaiblis, pour PIT). |
+
+Aperçus du deck construit (WebKit headless, 1920 × 1080) : `slides/apercu/01-titre.png`, `slides/apercu/08-capture-diff-utc.png`, `slides/apercu/12-sortie-harness-mutant.png`. Corrigés au fil des aperçus : compteurs de la slide 1 qui chevauchaient le nom (puis retirés), surtitre de la slide 8 sur deux lignes, compteurs de la slide 4 qui touchaient le pied de page, commentaire de code coupé sur la slide 15.
+
+### Test de clarté (3 tours)
+
+Protocole : à chaque tour, un relecteur **neuf** (agent généraliste, sans contexte) reçoit seulement le texte des slides (sans notes ni commentaires) et la liste des captures légendées, avec le profil « développeur Java intermédiaire, n'a jamais monté de harnais ni utilisé ArchUnit, PIT ou les hooks ». Il répond : départ, problème, cible, comment, outil, et « d'après le talk, faut-il garder ses règles et ses tests ? pourquoi ? », puis liste les mots non compris et les phrases qui pourraient faire croire que règles ou tests sont inutiles. Échec s'il pense qu'ils sont inutiles, ou s'il ne comprend pas un mot.
+
+**Tour 1** (15 slides, première version v4)
+- Départ, problème, cible, comment, outil : justes.
+- Garder règles et tests ? « Oui, c'est dit clairement (slides 10 et 15) : ils encadrent l'agent (0/144), font nettoyer la dette (30/30), linters et tests attrapent 7/20. Leur limite : ils ne voient que ce qu'ils visent. »
+- Mots non compris : Tools-in-Action ; les 3 chiffres de la slide 1 (« 0/34 défauts de revue vus » lu comme « l'agent a fait 0 défaut ») ; « tickets piégés » ; « rendre la main » ; « 0 erreur visée » ; « 30/30 par condition » ; 10 tickets → 180 passages ; « +59 % de coût » de quoi ; « oracle » ; « non applicables » ; « laissez l'agent abandonner » ; « diff vide » ; « seuil en CI » ; « slop », « ratchet » ; « CLI d'agent ».
+- Contresens possible : les slides de zéros (5, 7, 9) avant la slide 10.
+- Verdict : **échec** (mots non compris).
+- Corrections : « Tools-in-Action » retiré, chemin des 4 étapes affiché en surtitre ; « tickets piégés » → « 144 tickets qui exigent ce qu'une règle interdit » ; « rendre la main » → « déclare avoir fini » ; « sonner » → « échouer » partout ; 180 = 10 × 3 × 3 × 2 expliqué ; coût « en appels au modèle » ; « juge à l'aveugle » défini ; oracle, mutant, non applicable définis ; linters absents du build de l'outil expliqués ; « laissez l'agent abandonner » → « autorisez l'agent à s'arrêter » ; diff vide expliqué ; seuil en CI expliqué ; « Je ne vous dirai pas de les jeter » sur la slide 1 ; « le harnais n'est pas mauvais : il regarde ailleurs » sur la slide 7 ; « ils servent » en gros sur la slide 9.
+
+**Tour 2** (nouveau relecteur)
+- Départ, problème, cible, comment, outil : justes (« 13 du catalogue s'appliquent ici… avec cette sortie, j'écris la règle ou le test proposé, je délègue les tests affaiblis à PIT, puis je fixe un seuil en CI »).
+- Garder règles et tests ? « Oui, c'est dit clairement (slides 10 et 15) […] mais ils ne voient que ce qu'ils visent, donc il faut mesurer ce qu'ils ratent et compléter. »
+- Mots non compris : « il ne tourne plus contre le hook » (image) ; « hook » pris pour un hook git ; « copies sales », « consignes écrites » ; « banc fait à la main » ; « oracle » reste opaque à l'oral ; PIT vs harness-mutant ; « anti-slop-ratchet » ; « 2 modèles » lesquels ; chiffres trop nombreux (13 sur 20 contre 13 applicables).
+- Contresens possible : slide 5 « n'ont jamais échoué » lu comme « elles ne servent à rien ».
+- Verdict : **échec** (mots non compris).
+- Corrections : compteurs de la slide 1 retirés (moins de chiffres) ; « pas un hook git » ; slide 5 retournée (« Mes règles servent, et pourtant… », 30/30 en premier, « projet déjà sale » défini) ; « expérience faite à la main » ; oracle = « ce que le test vérifie (le 3 dans isEqualTo(3)) » ; PIT situé par rapport à l'outil ; « tourne contre le hook » → « réessayer en boucle » ; titre « ne validez pas un diff vide ».
+
+**Tour 3** (nouveau relecteur, dernier tour) : réponses
+1. Départ : « Je fais coder un agent dans mon dépôt Java. Je l'encadre avec des règles ArchUnit (d'anciennes remarques de revue devenues des tests), des tests, des linters et un hook qui le renvoie corriger. Ça marche : il ne contourne pas les règles (0/144) et, sur des tâches ordinaires, il ne fait plus les erreurs qu'elles visent. »
+2. Problème : « Un harnais qui ne casse jamais ne dit rien de ce qu'il laisse passer : 34 défauts trouvés en revue que rien ne signale ; le bug de fuseau UTC/Paris avec un test vert qui valide la mauvaise date ; 13 défauts injectés sur 20 qui passent sans rien casser. »
+3. Cible : « Pouvoir dire "mon harnais attrape X défauts sur N, voici les trous et ce qui fermerait chacun" : l'équivalent de la couverture de code, mais pour tout le harnais. C'est clair. »
+4. Comment : « Lancer harness-mutant ; fermer les trous (une règle ou un test par trou) ; un seuil de score en CI ; écrire dans le ticket "si une règle bloque, arrête-toi" ; ne pas compter un diff vide comme un succès. »
+5. Outil : « harness-mutant copie le projet, injecte un défaut réaliste à la fois (catalogue de 23, dont 13 s'appliquent ici), lance ma commande de build et note si elle échoue ; il sort un score (7/13) et, pour chaque trou, le fichier:ligne et quoi ajouter. Avec cette sortie, j'ajoute les règles et les tests proposés, je relance (10/13), puis je fixe un seuil en CI. »
+6. Garder règles, tests, linters ? « Oui, c'est dit explicitement (slides 10 et 15) : les règles encadrent l'agent (0 contournement sur 144, 30/30 projets sales nettoyés) ; les linters et les tests attrapent 7 défauts sur 20 ; mais chacun ne voit que ce qu'il vise, d'où l'intérêt de mesurer ce qui passe. »
+7. Pas compris : « coût ÷ 2,2 » (de quoi ?) ; « 144 nomment la règle » ; « quand il ne peut pas » ; « cliquet anti-code-bâclé » / nom du dépôt ; « fichier lu par l'agent » ; « 15 comptés réussis » sur combien ; « code de sortie 2 » (capture) ; noms des modèles. Compris grâce à l'explication mais inhabituel : harnais, hook, mutation testing, revue croisée, juge à l'aveugle, oracle, mutant, non applicable, trou, tests affaiblis, PIT, projet déjà sale, seuil en CI.
+8. Contresens possible : les lignes « 0 » (slides 5, 7, 9, capture 04) restent en tête, « les nuances corrigent l'impression, mais elles sont en petit sous de gros chiffres ».
+9. Flou : trop de nombres de défauts (34, 18/34, 20, 23, 13) ; harness-mutant contre PIT (lequel d'abord ?) ; crédibilité (relecteurs agents ; le défaut UTC est-il un défaut sans spécification ?).
+
+Verdict du tour 3 : **le message passe** (garder règles, tests et linters, et mesurer ce qu'ils laissent passer), mais **échec au critère strict** : 8 tournures encore non comprises. Les 3 tours étant épuisés, elles ont été corrigées sans 4ᵉ relecture :
+- slide 4 : « Quand le ticket est impossible sans violer une règle, l'agent s'arrête » ; « 144 réponses citent la règle » ; surtitres 3-4 « mon harnais (peut-être le vôtre) » (le relecteur se sentait exclu par « ce que vous avez déjà ») ; capture 02 : « code de sortie 2 » remplacé par « le hook refuse : l'agent doit reprendre » (bandeau, pas la sortie elle-même) ;
+- slide 5 : « consignes écrites dans le fichier d'instructions que l'agent lit au démarrage » ;
+- slide 7 : « 34 défauts à eux deux, dont 18 vus par les deux » ;
+- slide 8 : « Le ticket vise des clients en France (date au format jj/mm/aaaa) » (le ticket T03 impose ce format) ;
+- slide 13 : « lancez harness-mutant d'abord, puis PIT pour les trous "test affaibli" » ;
+- slide 14 : « coût des appels au modèle divisé par 2,2 » ; « 15 passages sur 65 étaient vides et comptés réussis » ;
+- slide 15 : plus d'explication du nom du dépôt (« cliquet ») ; « 2 modèles de langage (novembre 2026) ».
+
+Restent ouverts, pour Mekki : le nom du dépôt `anti-slop-ratchet` (anglais, visible dans la commande `git clone`) ; « harnais » reste un mot étrange en français même défini (les trois relecteurs l'ont dit) ; le nombre de chiffres de défauts différents (34, 20, 23, 13) ; à l'oral, insister sur la ligne « ils servent » des slides 7 et 9.
+
+## Historique : deck v3
+
+### Deck v3 (28/11/2026, branche `deck-v3`) : le chemin en 4 étapes, l'outil, la revue croisée
 
 Constat de départ (Mekki, sur le deck v2) : « en lisant les diapos je ne comprends pas le point de départ,
 le point cible, le problème et comment faire » ; « il manque un outil qu'on met sur notre GitHub ».

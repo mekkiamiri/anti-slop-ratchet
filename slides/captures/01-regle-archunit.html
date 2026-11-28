@@ -1,0 +1,13 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="commun.css"></head><body>
+<div class="fen"><div class="onglet"><span><b>AntiSlopRules.java</b> · une remarque de revue devenue une règle ArchUnit</span><span>lignes 71-76</span></div>
+<pre><span class="ln">71</span>@ArchTest
+<span class="ln">72</span><span class="k">public static final</span> ArchRule R03_NO_OPTIONAL_GET = noClasses()
+<span class="ln">73</span>        .should().<span class="h">callMethod(Optional.class, "get")</span>
+<span class="ln">74</span>        .as(<span class="s">"R03 pas d'Optional.get()"</span>)
+<span class="ln">75</span>        .because(<span class="s">"revue : « Optional.get() sans test, c'est un NoSuchElementException en prod. "</span>
+<span class="ln">76</span>                + <span class="s">"Utilise orElseThrow(() -&gt; new XxxNotFoundException(id)). »"</span>);</pre></div>
+<div class="fen"><div class="onglet"><span><b>mvn test</b> · le message d'échec quand le code appelle Optional.get()</span><span class="rouge">BUILD FAILURE</span></div>
+<pre><span class="rouge">Architecture Violation</span> [Priority: MEDIUM] - Rule 'R03 pas d'Optional.get(), because revue : « Optional.get() sans test, c'est un NoSuchElementException en prod. Utilise orElseThrow(() -&gt; new XxxNotFoundException(id)). »' <span class="h">was violated (1 times)</span>:
+Method &lt;io.github.mekkiamiri.ratchet.order.application.OrderService.get(io.github.mekkiamiri.ratchet.order.domain.OrderId)&gt; calls method &lt;java.util.Optional.get()&gt; in <span class="h">(OrderService.java:61)</span></pre></div>
+<p class="note"><b>ArchUnit</b> : une bibliothèque Java qui vérifie la structure du code dans un test JUnit. La règle échoue comme un test, et son message dit quoi faire à la place.</p>
+</body></html>

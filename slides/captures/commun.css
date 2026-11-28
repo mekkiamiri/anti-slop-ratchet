@@ -1,0 +1,14 @@
+/* Habillage commun des captures (rendu sombre, capturé par WebKit headless en 1280x800). */
+html,body{margin:0;background:#0d0f10;color:#e9e4d8;font:17px/1.5 Menlo,"SF Mono",Monaco,monospace}
+body{padding:14px;box-sizing:border-box;width:1280px}
+.fen{border:1px solid #2f3437;border-radius:10px;background:#15181a;overflow:hidden;margin-bottom:22px}
+.onglet{background:#1d2124;color:#9aa3a8;font:600 14px/1 -apple-system,"Helvetica Neue",sans-serif;padding:11px 16px;border-bottom:1px solid #2f3437;display:flex;justify-content:space-between;letter-spacing:.02em}
+.onglet b{color:#e9e4d8;font-weight:600}
+pre{margin:0;padding:16px 20px;white-space:pre-wrap;word-break:break-word}
+.c{color:#6b7479}.k{color:#c792ea}.s{color:#c3e88d}.n{color:#82aaff}
+.h{background:rgba(255,176,0,.22);color:#ffcf66;outline:1px solid rgba(255,176,0,.6);border-radius:3px}
+.rouge{color:#ff6b6b}.vert{color:#7bd88f}.ambre{color:#ffb000}
+.add{background:rgba(123,216,143,.10);display:block}.del{background:rgba(255,107,107,.10);display:block}
+.ln{color:#4c5459;display:inline-block;width:3.2em;text-align:right;margin-right:1em;user-select:none}
+.note{font:15px/1.45 -apple-system,"Helvetica Neue",sans-serif;color:#cfc9bc;border-left:3px solid #ffb000;padding:6px 14px;margin:0 2px 18px}
+.note b{color:#ffb000}

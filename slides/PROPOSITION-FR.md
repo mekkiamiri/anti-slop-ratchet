@@ -2,32 +2,32 @@
 
 **Format :** Tools-in-Action (30 min) · **Track :** Méthodologie et pratiques de développement (pas le track IA, où le sujet serait un parmi trente) · **Niveau :** intermédiaire · **Langue :** français
 
-## Titre (41 caractères)
+## Titre (56 caractères)
 
-Mon harnais était aveugle, pas mon agent
+Votre agent suit vos règles. Que laissent-elles passer ?
 
 ## Abstract
 
-Vous avez mis votre agent de code dans un harnais : tests, linters, règles ArchUnit, un hook qui le bloque tant que c'est rouge. Le mien n'a jamais sonné en 180 tâches. Bon signe ? Personne ne le sait : on mesure la couverture de ses tests, jamais celle de son harnais.
+Vous encadrez votre agent de code avec un harnais : règles ArchUnit, tests, linters, un hook qui le renvoie corriger tant que c'est rouge. Ça marche : sur 144 tickets qui exigent ce qu'une règle interdit, mon agent n'a jamais contourné une règle ; il corrige son code ou demande à l'humain. Et sur 180 tâches ordinaires, aucune règle n'a échoué. Bon signe ? On mesure la couverture de ses tests, jamais ce que son harnais attrape.
 
-Je l'ai mesurée. L'agent ne triche pas : 0 contournement sur 144 tickets qui exigent ce qu'une règle interdit. Mais deux relecteurs (un agent de revue et un juge à l'aveugle) trouvent 34 défauts dans 10 de ses diffs, et mon harnais n'en voit aucun ; sur 20 défauts injectés, mes règles n'en attrapent aucun.
+Je l'ai mesuré. Deux relecteurs (un agent de revue et un juge qui ne sait pas si le code a été écrit avec ou sans règles) trouvent 34 défauts dans 10 diffs de l'agent, comme une date de livraison calculée en UTC, un jour trop tôt pour un client à Paris ; ni règle, ni linter, ni test ne les signale. Ce n'est pas que le harnais est mauvais : il ne voit que ce qu'il vise.
 
-J'en ai fait un outil open source, harness-mutant : une commande injecte des défauts réalistes dans une copie de votre projet, lance votre harnais et répond « il attrape 7 défauts sur 13 ; voici les trous, et ce qui fermerait chacun ».
+Ce talk ne vous dira pas de jeter vos règles. Il vous montre comment mesurer ce qu'elles laissent passer, avec un outil open source, harness-mutant : une commande casse une copie de votre projet, un défaut réaliste à la fois, lance votre build et répond « il attrape 7 défauts sur 13 ; voici les trous, et la règle ou le test qui fermerait chacun ». Une règle ArchUnit et deux tests plus tard : 10 sur 13.
 
-Vous repartirez avec : l'outil et son catalogue de défauts à étendre ; la méthode pour fermer un trou et suivre le score en CI ; deux garde-fous gratuits, le droit d'abandonner pour l'agent (coût ÷ 2,2) et le diff vide refusé.
+Vous repartirez avec : l'outil et son catalogue de défauts à étendre ; la méthode pour fermer un trou et suivre le score en CI ; deux garde-fous gratuits, autoriser l'agent à s'arrêter et expliquer (coût ÷ 2,2) et ne pas valider un diff vide.
 
 ## Notes au comité
 
 ```
 Pourquoi ce n'est pas « encore un talk ArchUnit pour le code d'IA » :
 - Ce talk-là a déjà été donné (Devoxx BE 2026). Ici les règles tiennent en une slide :
-  le sujet est la mesure du harnais lui-même, la question que Böckeler laisse ouverte
+  le sujet est la mesure de ce que le harnais attrape, la question que Böckeler laisse ouverte
   (« We need a way to evaluate harness coverage … similar to what code coverage and
   mutation testing do for tests », martinfowler.com, 2 avril 2026).
 - Le talk rapporte un résultat contre ma propre attente : je pensais que l'agent
   contournerait les règles (comme ImpossibleBench le montre pour les tests) ; il ne l'a
-  jamais fait en 144 passages. Le vrai trou était ailleurs : les règles regardent les
-  erreurs d'hier.
+  jamais fait en 144 passages. Les règles font leur travail ; le trou était ailleurs :
+  elles ne voient que ce qu'elles visent, et personne ne mesurait le reste.
 
 Pourquoi moi :
 - Tech Lead et architecte système, référent IA d'un centre de développement logiciel ;
@@ -50,22 +50,29 @@ Ce qui tourne déjà :
 Limites dites sur scène :
 - un petit projet Java (414 lignes), deux modèles (novembre 2026), deux relecteurs qui sont
   des agents et non des humains, un catalogue de défauts écrit par moi.
-  Ce qui ne dépend pas de ces choix : aucune règle n'a sonné sur les 50 copies, et aucune
+  Ce qui ne dépend pas de ces choix : aucune règle n'a échoué sur les 50 copies, et aucune
   n'a vu les 8 défauts cousins directs d'une règle.
 
-Plan minuté (30 min), en 4 étapes :
-- 0-5      Départ : votre harnais (tests, linters, ArchUnit, hook) ; 180 tâches, rien ne sonne
-- 5-14     Problème : un harnais muet ne dit rien ; l'agent ne triche pas (0/144) ;
-           revue croisée : 34 défauts, 0 vu par le harnais ; 20 défauts injectés, 0 vu
-- 14-15:30 Cible : la couverture du harnais, comme celle des tests
-- 15:30-30 Comment : harness-mutant en démo, sur le code de l'agent, fermer 3 trous ;
+Plan minuté (30 min, 15 slides), en 4 étapes :
+- 0-9      Départ : trois mots (agent de code, harnais, linter) ; une règle ArchUnit et son
+           message d'échec ; le hook qui renvoie l'agent corriger (0 contournement sur 144) ;
+           180 tâches ordinaires, aucune règle n'échoue, dette nettoyée 30/30
+- 9-17     Problème : un harnais qui n'échoue jamais ne dit pas ce qu'il laisse passer ;
+           revue croisée : 34 défauts, 0 signalé ; le défaut UTC ; 20 défauts injectés, 13 passent
+- 17-19:30 Cible : ce que ce talk ne dit pas (« jetez vos règles ») ; la couverture du
+           harnais, comme celle des tests
+- 19:30-30 Comment : harness-mutant en démo, une règle et deux tests (7 → 10 sur 13) ;
            trois gestes ; limites et dépôt
+
+Ce que le talk ne dit pas (une slide dédiée) : les règles, ArchUnit, les linters et les
+tests ne sont pas inutiles ; ils encadrent l'agent et attrapent ce qu'ils visent. Le message :
+mesurez ce qu'ils laissent passer, et fermez les trous.
 
 Expérience de scène :
 - [À compléter par Mekki : meetups, JUG, présentations internes (nombre de participants), lien vidéo]
 
 Accord employeur : [à compléter par Mekki]
-Adaptable : Quickie 20 min (10 slides : le chemin et la démo de l'outil).
+Adaptable : Quickie 20 min (10 slides : le chemin, les captures et la démo de l'outil).
 ```
 
 ## Bio (3e personne, 364 caractères)

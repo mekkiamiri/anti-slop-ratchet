@@ -1,0 +1,27 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="commun.css">
+<style>.deux{display:grid;grid-template-columns:1fr 1fr;gap:20px}.deux pre{font:16px/1.5 -apple-system,"Helvetica Neue",sans-serif}
+table{border-collapse:collapse;width:100%;font:16px/1.4 -apple-system,"Helvetica Neue",sans-serif}td{padding:9px 16px;border-top:1px solid #2f3437}td.n{text-align:right;font-family:Menlo,monospace}</style></head><body>
+<div class="deux">
+<div class="fen"><div class="onglet"><span><b>Relecteur 1 · agent de revue</b> · REVIEW.md</span><span class="ambre">majeure</span></div>
+<pre><b>CR-04 : date calculée en UTC, donc un jour trop tôt pour les commandes passées après minuit, heure de Paris</b>
+<span class="c">Order.java:85-88</span>
+<code>createdAt.atZone(ZoneOffset.UTC).toLocalDate()</code>. Une commande passée à 23h30Z le 29/04, soit le 30/04 à 01h30 heure de Paris, <span class="h">reçoit 02/05 au lieu de 03/05</span>.
+
+<b>WR-20 : le test fige l'interprétation UTC</b>
+<span class="c">OrderTest.java:25-26</span>
+Le test verrouille le comportement de CR-04 au lieu de le révéler.</pre></div>
+<div class="fen"><div class="onglet"><span><b>Relecteur 2 · juge à l'aveugle</b> · jugement.json</span><span class="ambre">majeure</span></div>
+<pre><b>Diff K · justesse 3/5</b>
+<span class="c">Order.java:85-88</span>
+estimatedDeliveryDate tronque createdAt au jour UTC : une commande créée le 29/04 à 23h30Z (30/04 à 01h30 à Paris) <span class="h">reçoit 02/05 au lieu de 03/05</span> pour un client en France.
+
+<span class="c">OrderControllerTest.java:32-34</span>
+L'oracle matchesPattern("\\d{2}/\\d{2}/\\d{4}") reste vert si le format passe à MM/dd/yyyy (mutation essayée : suite verte).</pre></div>
+</div>
+<div class="fen"><div class="onglet"><span><b>Croisement</b> · croisement.json · 10 diffs de l'agent</span><span>34 défauts différents, dont 6 majeurs</span></div>
+<table><tr><td>Défauts trouvés par les deux relecteurs</td><td class="n">18 / 34 (dont les 6 majeurs)</td></tr>
+<tr><td>Vus par les 11 règles ArchUnit et le hook</td><td class="n rouge">0 / 34</td></tr>
+<tr><td>Vus par les linters PMD et SpotBugs</td><td class="n rouge">0 / 34</td></tr>
+<tr><td>Vus par les tests (tous verts)</td><td class="n rouge">0 / 34</td></tr></table></div>
+<p class="note"><b>Revue croisée</b> : deux relecteurs qui ne se voient pas relisent les mêmes 10 diffs anonymisés ; le juge ne sait pas si le diff a été écrit avec ou sans règles. Les deux relecteurs sont des agents, pas des humains. Extraits coupés […], sans autre retouche.</p>
+</body></html>

@@ -1,0 +1,11 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="commun.css"></head><body>
+<div class="fen"><div class="onglet"><span><b>diff de l'agent</b> · ticket « ajouter une date de livraison estimée (création + 3 jours, jj/mm/aaaa) » · Order.java</span><span class="vert">11 règles OK · tests verts</span></div>
+<pre><span class="c">@@ -80,6 +82,11 @@ public class Order {</span>
+         return createdAt;
+     }
+
+<span class="add">+    /** Date de livraison estimée : date de création (UTC) plus 3 jours. */</span><span class="add">+    public LocalDate estimatedDeliveryDate() {</span><span class="add">+        return createdAt.atZone(<span class="h">ZoneOffset.UTC</span>).toLocalDate().plusDays(3);</span><span class="add">+    }</span></pre></div>
+<div class="fen"><div class="onglet"><span><b>diff de l'agent</b> · OrderTest.java · le test écrit par l'agent</span><span class="vert">vert</span></div>
+<pre><span class="add">+    @Test</span><span class="add">+    void estimatedDeliveryIsCreationDatePlusThreeDays() {</span><span class="add">+        assertThat(order.estimatedDeliveryDate()).isEqualTo(java.time.LocalDate.of(2027, 4, 17));</span><span class="add">+        Order endOfMonth = new Order(new OrderId("o-2"), "ada", Instant.parse("<span class="h">2027-04-29T23:30:00Z</span>"));</span><span class="add">+        assertThat(endOfMonth.estimatedDeliveryDate()).isEqualTo(java.time.LocalDate.of(2027, 5, <span class="h">2</span>));</span><span class="add">+    }</span></pre></div>
+<p class="note"><b>Le défaut</b> : à Paris, cette commande est passée le <b>30 avril à 1 h 30</b> ; la livraison annoncée devrait être le 3 mai, l'agent annonce le 2. Le code est propre (java.time, pas de java.util.Date : ma règle R09 est respectée), et le test de l'agent fige l'erreur comme attendue. Trouvé par les deux relecteurs (majeur).</p>
+</body></html>

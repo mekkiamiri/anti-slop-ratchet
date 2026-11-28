@@ -1,0 +1,31 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><link rel="stylesheet" href="commun.css">
+<style>pre{font-size:13.5px;line-height:1.42}</style></head><body>
+<div class="fen"><div class="onglet"><span><b>Terminal · harness-mutant sur le projet du talk · après le patch « une règle, deux tests »</b></span><span>sortie réelle · outil/exemples/</span></div>
+<pre><span class="vert">$</span> git apply outil/exemples/fermer-les-trous.patch<br><span class="vert">$</span> harness-mutant --projet . --commande &quot;mvn -o -q verify&quot;
+<span class="c">Projet : . (après git apply outil/exemples/fermer-les-trous.patch) · harnais : « mvn -o -q verify » (témoin vert en 12 s)</span>
+
+<span class="h">Votre harnais attrape 10 défauts sur 13 (77 %).</span>
+  attrapés par : tests 9, ArchUnit 1
+
+<span class="rouge">Les 3 trous (le défaut est entré, la commande est restée verte) :</span>
+  J20  assertion supprimée dans un test  (src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java:29)
+<span class="ambre">        pour l&#x27;attraper : PIT : le test ne tue plus aucun mutant ; PMD UnitTestShouldIncludeAssert s&#x27;il n&#x27;en reste aucune</span>
+  J21  oracle affaibli (isEqualTo devient isNotNull)  (src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java:30)
+<span class="ambre">        pour l&#x27;attraper : PIT : les mutants de la valeur survivent</span>
+  J22  oracle JSON affaibli (value devient exists)  (src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java:32)
+<span class="ambre">        pour l&#x27;attraper : PIT : les mutants de la valeur survivent</span>
+
+<span class="vert">Attrapés :</span>
+  J02  borne incluse (&lt;= 0 devient &lt; 0)  -&gt; tests
+  J03  calcul monétaire en double (doubleValue)  -&gt; tests
+  J05  horloge système au lieu de l&#x27;horloge injectée  -&gt; tests
+  J12  garde de validation supprimée  -&gt; tests
+  J13  contrôle de null retiré  -&gt; tests
+  J14  état interne exposé (copie défensive retirée)  -&gt; tests
+  J15  collection non thread-safe dans un singleton  -&gt; tests
+  J16  validation d&#x27;entrée retirée (@Valid)  -&gt; tests
+  J17  mauvais code HTTP pour une erreur métier  -&gt; tests
+  J23  test désactivé (@Disabled)  -&gt; ArchUnit, tests
+
+<span class="c">Non applicables ici (motif absent) : J01, J04, J06, J07, J08, J09, J10, J11, J18, J19</span></pre></div>
+</body></html>

@@ -2,7 +2,7 @@
 
 **Mon agent ne fait plus d'AI slop. Mes règles servent à autre chose : lui faire rembourser la dette.**
 
-Dépôt de démo du talk « Mon agent ne fait plus d'AI slop : à quoi bon mes règles ? » (Tools-in-Action, 30 min, proposé à Devoxx France 2027). J'avais changé 11 remarques de revue en 11 règles ArchUnit branchées dans la boucle de l'agent, pour l'empêcher de faire du slop. Mesuré sur 180 passages, l'agent ne fait pas ces erreurs, même sans règles ; les règles branchées, elles, lui font nettoyer la dette existante. Résultats complets : [mesures/README.md](mesures/README.md).
+Dépôt de démo du talk « Votre agent suit vos règles. Que laissent-elles passer ? » (Tools-in-Action, 30 min, proposé à Devoxx France 2027). J'avais changé 11 remarques de revue en 11 règles ArchUnit branchées dans la boucle de l'agent, pour l'empêcher de faire du slop. Mesuré sur 180 passages, l'agent ne fait pas ces erreurs, même sans règles ; les règles branchées, elles, lui font nettoyer la dette existante. Résultats complets : [mesures/README.md](mesures/README.md).
 
 - Page du catalogue (filtrable, avec un essai en direct) : https://mekkiamiri.github.io/anti-slop-ratchet/
 - Slides : https://mekkiamiri.github.io/anti-slop-ratchet/slides/

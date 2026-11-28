@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mon harnais était aveugle, pas mon agent · Mekki Amiri</title>
+<title>Que laissent passer vos règles ? · Mekki Amiri</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Martian+Mono:wght@400;500&display=swap" rel="stylesheet">
 <!-- Généré par kit/build_deck.py : modifier les slides source, pas ce fichier. -->
@@ -214,223 +214,231 @@ body.show-notes .slide.active .notes{display:block;position:absolute;left:120px;
 </head>
 <body>
 <div class="deck-viewport"><main class="deck-stage" id="deckStage">
-<!-- Slides du talk « Mon harnais était aveugle, pas mon agent » (Tools-in-Action, 30 min, v3)
-     Construire : python3 <kit>/build_deck.py slides/slides.html docs/slides/index.html "Mon harnais était aveugle, pas mon agent"
+<!-- Slides du talk « Votre agent suit vos règles. Que laissent-elles passer ? » (Tools-in-Action, 30 min, v4)
+     Construire : python3 <kit>/build_deck.py slides/slides.html docs/slides/index.html "Que laissent passer vos règles ?"
      Cadre : chaque slide appartient à une étape, affichée en surtitre : DÉPART → PROBLÈME → CIBLE → COMMENT.
-     Départ : vous avez mis votre agent dans un harnais (règles, linters, hook) et rien ne sonne jamais.
-     Problème : un harnais muet ne dit pas s'il est bon ; mesuré, le mien ne voit aucun des défauts trouvés en revue.
-     Cible : connaître la couverture de son harnais, comme celle de ses tests, et savoir quoi ajouter.
-     Comment : l'outil harness-mutant (outil/), puis 3 gestes.
+     Message : les règles, les tests et ArchUnit sont utiles, mais vous ne savez pas ce qu'ils attrapent ;
+     mesurez-le avec harness-mutant et fermez les trous. Le talk ne dit JAMAIS qu'ils sont inutiles (slide 10).
+     Chaque terme technique est expliqué en clair à sa première apparition.
+     Captures : docs/slides/img/ (sources HTML et script dans slides/captures/, rendu WebKit headless).
      Sources des chiffres : mesures/README.md (180 passages), mesures/these-a/contournement/README.md (144 passages),
      mesures/these-a/aveugle/README.md (20 défauts injectés), mesures/these-a/revue-croisee/ (revue croisée, 28/11/2026),
      outil/exemples/ (sorties réelles de harness-mutant). -->
 
-<!-- Ce que je veux dire : mes règles ne sonnaient jamais ; ce n'était pas la faute de l'agent, c'était mon harnais, et je repars avec un outil pour le mesurer. -->
+<!-- Ce que je veux dire : mes règles encadrent mon agent, mais je ne savais pas ce qu'elles laissent passer ; je l'ai mesuré et j'en ai fait un outil. -->
 <section class="slide">
   <div class="ruler"><i style="left:0px;height:40px"></i><i style="left:28px;height:12px"></i><i style="left:56px;height:12px"></i><i style="left:84px;height:12px"></i><i style="left:112px;height:12px"></i><i style="left:140px;height:24px"></i><i style="left:168px;height:12px"></i><i style="left:196px;height:12px"></i><i style="left:224px;height:12px"></i><i style="left:252px;height:12px"></i><i style="left:280px;height:40px"></i><i style="left:308px;height:12px"></i><i style="left:336px;height:12px"></i><i style="left:364px;height:12px"></i><i style="left:392px;height:12px"></i><i style="left:420px;height:24px"></i><i style="left:448px;height:12px"></i><i style="left:476px;height:12px"></i><i style="left:504px;height:12px"></i><i style="left:532px;height:12px"></i><i style="left:560px;height:40px"></i><i style="left:588px;height:12px"></i><i style="left:616px;height:12px"></i><i style="left:644px;height:12px"></i><i style="left:672px;height:12px"></i><i style="left:700px;height:24px"></i><i style="left:728px;height:12px"></i><i style="left:756px;height:12px"></i><i style="left:784px;height:12px"></i><i style="left:812px;height:12px"></i><i style="left:840px;height:40px"></i><i style="left:868px;height:12px"></i><i style="left:896px;height:12px"></i><i style="left:924px;height:12px"></i><i style="left:952px;height:12px"></i><i style="left:980px;height:24px"></i><i style="left:1008px;height:12px"></i><i style="left:1036px;height:12px"></i><i style="left:1064px;height:12px"></i><i style="left:1092px;height:12px"></i><i style="left:1120px;height:40px"></i><i style="left:1148px;height:12px"></i><i style="left:1176px;height:12px"></i><i style="left:1204px;height:12px"></i><i style="left:1232px;height:12px"></i><i style="left:1260px;height:24px"></i><i style="left:1288px;height:12px"></i><i style="left:1316px;height:12px"></i><i style="left:1344px;height:12px"></i><i style="left:1372px;height:12px"></i><i style="left:1400px;height:40px"></i><i style="left:1428px;height:12px"></i><i style="left:1456px;height:12px"></i><i style="left:1484px;height:12px"></i><i style="left:1512px;height:12px"></i><i style="left:1540px;height:24px"></i><i style="left:1568px;height:12px"></i><i style="left:1596px;height:12px"></i><i style="left:1624px;height:12px"></i><i style="left:1652px;height:12px"></i></div><div class="needle"></div>
   <div class="pad" style="top:230px">
-    <div class="k reveal">Départ · Tools-in-Action · 30 min</div>
-    <h1 class="reveal" style="margin-top:40px;font-size:124px">Mon harnais était aveugle,<br><em>pas mon agent.</em></h1>
-    <p class="reveal" style="margin-top:30px;font-size:34px">Mesurer ce que vos règles attrapent vraiment, avec un outil open source.</p>
+    <div class="k reveal">Départ · 30 min · chemin : départ → problème → cible → comment</div>
+    <h1 class="reveal" style="margin-top:40px;font-size:120px">Votre agent suit vos règles.<br><em>Que laissent-elles passer ?</em></h1>
+    <p class="reveal" style="margin-top:30px;font-size:32px;max-width:1500px">Vos règles et vos tests encadrent votre agent de code. Savez-vous ce qu'ils attrapent ? Je l'ai mesuré, et j'en ai fait un outil open source.</p>
+    <p class="reveal" style="margin-top:20px;font-size:32px"><em>Je ne vous dirai pas de les jeter.</em></p>
   </div>
-  <div class="readouts reveal" style="position:absolute;left:120px;bottom:130px"><div><b>180</b><span>tâches, 0 règle qui sonne</span></div><div><b>0/34</b><span>défauts de revue vus par mes règles</span></div><div><b>1</b><span>commande pour mesurer le vôtre</span></div></div>
-  <div style="position:absolute;right:120px;bottom:140px;text-align:right" class="reveal"><h3>Mekki Amiri</h3><p class="muted" style="font-size:24px;margin:8px 0 0">Tech Lead · architecte système</p></div>
-  <aside class="notes">Bonjour. J'ai mis des règles autour de mon agent de code. Elles ne sonnaient jamais. J'ai cru que c'était bon signe. Ce talk suit quatre étapes, affichées en haut de chaque slide : d'où vous partez, le problème, où aller, et comment, avec un outil que vous pourrez lancer lundi. Transition : d'où on part.</aside>
+  <div style="position:absolute;right:120px;top:215px;text-align:right" class="reveal"><h3>Mekki Amiri</h3><p class="muted" style="font-size:24px;margin:8px 0 0">Tech Lead · architecte système</p></div>
+  <aside class="notes">Bonjour. J'ai mis des règles autour de mon agent de code. Elles marchent : il ne les contourne pas. Mais elles ne sonnaient jamais, et je ne savais pas ce qu'elles laissaient passer. Ce talk suit quatre étapes, affichées en haut de chaque slide : d'où vous partez, le problème, où aller, et comment, avec un outil que vous pourrez lancer lundi. Je le dis tout de suite : je ne vais pas vous dire de jeter vos règles. Transition : d'abord, trois mots.</aside>
 </section>
 
-<!-- Ce que je veux dire : vous avez sans doute déjà ce point de départ : un agent de code entouré de règles qui bloquent tant que c'est rouge. -->
+<!-- Ce que je veux dire : trois mots que j'emploie tout le talk, expliqués une fois pour toutes. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Départ · ce que vous avez aujourd'hui</div>
-    <h2 class="reveal" style="margin-top:30px;font-size:74px">Vous avez mis votre agent de code dans un <em>harnais</em> : tests, linters et règles qui bloquent tant que c'est rouge.</h2>
-    <ul class="steps reveal">
-      <li data-n="01">Des <em>tests</em> et des linters (PMD, SpotBugs, Checkstyle)</li>
-      <li data-n="02">Des règles d'architecture (<em>ArchUnit</em>) : moi, 11 remarques de revue devenues 11 règles</li>
-      <li data-n="03">Un <em>hook</em> relance tout après chaque fichier : l'agent ne rend la main que si c'est vert</li>
-    </ul>
-    <p class="muted reveal" style="margin-top:30px;font-size:26px">Harnais = tout ce qui entoure l'agent pour vérifier son code (mot de Birgitta Böckeler)</p>
+    <div class="k reveal">Départ · trois mots pour tout le talk</div>
+    <h2 class="reveal" style="margin-top:24px;font-size:66px">Un agent de code écrit votre code seul ; son <em>harnais</em>, c'est tout ce qui vérifie ce qu'il écrit.</h2>
+    <table class="m reveal" style="margin-top:44px">
+      <tr><th>Mot</th><th style="text-align:left">Ce que ça veut dire ici</th></tr>
+      <tr><td style="width:340px"><em>Agent de code</em></td><td>Un modèle de langage qui lit le dépôt, écrit le code et lance les commandes (Maven, git) tout seul, dans un terminal</td></tr>
+      <tr><td><em>Harnais</em></td><td>L'ensemble des règles, tests, linters et hooks qui encadrent l'agent (traduction de « harness », le mot de Birgitta Böckeler sur martinfowler.com ; plus large que le « test harness » de JUnit)</td></tr>
+      <tr><td><em>Linter</em></td><td>Un outil qui signale du code fautif sans l'exécuter : PMD, SpotBugs</td></tr>
+    </table>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Harnais, c'est le mot de Birgitta Böckeler : tout ce qu'on met autour de l'agent, des consignes avant, des capteurs après. Mon harnais : 11 remarques de revue qui revenaient (pas de new BigDecimal(0.9) pour de l'argent, pas de java.util.Date…) devenues 11 règles ArchUnit, plus un hook, un script branché sur l'agent, qui les relance après chaque fichier écrit. Tant qu'une règle casse, l'agent ne peut pas finir. Détail dans RATCHET.md. Transition : j'ai branché ça, et j'ai compté.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Agent de code : pas l'autocomplétion, un agent qui fait le ticket seul et lance les commandes. Harnais : le mot vient de Birgitta Böckeler ; c'est tout ce qu'on met autour de l'agent pour vérifier son travail : tests, linters, règles d'architecture, et des scripts qui les relancent. Les deux pièces qui restent, ArchUnit et le hook, je les montre sur les deux slides suivantes. Transition : ma première pièce, une règle ArchUnit.</aside>
 </section>
 
-<!-- Ce que je veux dire : sur 180 tâches ordinaires, aucune règle n'a jamais sonné ; c'est là que commence le doute. -->
-<section class="slide">
-  <div class="pad" style="top:240px">
-    <div class="k reveal">Départ · 22/11/2026 · 10 tickets ordinaires · 180 passages</div>
-    <h2 class="reveal" style="margin-top:30px">Sur 180 tâches, mes 11 règles <em>n'ont jamais sonné</em>.</h2>
-    <div class="readouts reveal" style="margin-top:70px"><div><b>180</b><span>passages d'agent</span></div><div><b>0</b><span>violation ajoutée, avec ou sans règles</span></div><div><b>30/30</b><span>tests verts dans chaque condition</span></div></div>
-  </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">180 passages, compteur automatique : zéro violation ajoutée, même sans règles. Le seul effet visible des règles : sur un projet volontairement sale, l'agent nettoie la dette existante 30 fois sur 30, pour +59 % de coût. Source : mesures/README.md. Transition : alors, zéro, c'est bon signe ?</aside>
-</section>
-
-<!-- Ce que je veux dire : le problème, c'est qu'un harnais muet ne dit rien de lui-même ; personne ne mesure sa couverture. -->
+<!-- Ce que je veux dire : une règle ArchUnit, c'est une remarque de revue devenue un test qui échoue, avec un message qui dit quoi faire. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Problème · Birgitta Böckeler · martinfowler.com · 02/04/2026</div>
-    <h2 class="reveal" style="margin-top:30px;font-size:72px">Un harnais muet ne dit pas si votre code est bon <em>ou si vos capteurs sont aveugles</em>.</h2>
-    <p class="reveal" style="margin-top:60px;font-size:36px;font-style:italic">« If sensors never fire, is that a sign of high quality or inadequate detection mechanisms? »</p>
-    <p class="muted reveal" style="margin-top:30px;font-size:28px">« We need a way to evaluate harness coverage […] similar to what code coverage and mutation testing do for tests. »</p>
+    <div class="k reveal">Départ · mon harnais (peut-être le vôtre) : des règles d'architecture</div>
+    <h2 class="reveal" style="margin-top:20px;font-size:62px">Une règle <em>ArchUnit</em> transforme une remarque de revue en test qui échoue.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1040px;gap:60px;margin-top:40px;align-items:start">
+      <div><p style="font-size:30px;margin:0">ArchUnit : une bibliothèque Java qui vérifie la structure du code dans un test JUnit.</p><p class="muted" style="font-size:26px;margin-top:30px">Moi : 11 remarques de revue qui revenaient, devenues 11 règles.</p></div>
+      <img src="img/01-regle-archunit.png" alt="La règle R03 « pas d'Optional.get() » et son message d'échec dans mvn test" style="width:1040px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Böckeler pose la question et la laisse ouverte. Pour vos tests, vous avez la couverture et le mutation testing. Pour votre harnais, rien : vous ne savez pas ce qu'il attrape. Deux explications à mon zéro : l'agent contourne les règles, ou les règles regardent ailleurs. Transition : la première fait peur, je l'ai testée d'abord.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">En haut, la règle R03 : aucune classe n'appelle Optional.get(). Le because reprend mot pour mot la remarque de revue d'origine. En bas, le vrai message de mvn test quand le code l'appelle : la règle, la raison, le fichier et la ligne. Mes 11 règles : pas de new BigDecimal(0.9) pour de l'argent, pas de java.util.Date, pas de System.out… Ce sont des règles utiles : elles attrapent ce qu'elles visent. Détail dans RATCHET.md. Transition : il faut encore que l'agent les lise.</aside>
 </section>
 
-<!-- Ce que je veux dire : ce n'est pas l'agent qui triche ; mis au pied du mur, il cite la règle et rend la décision. -->
+<!-- Ce que je veux dire : le hook relance les règles et renvoie l'agent corriger ; l'agent corrige le code, jamais la règle. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Problème · 25/11/2026 · 12 tickets × 3 variantes × 2 modèles × 2</div>
-    <h2 class="reveal" style="margin-top:30px;font-size:72px">Ce n'est pas l'agent qui triche : <em>0 contournement</em> sur 144 tickets qui exigent ce qu'une règle interdit.</h2>
-    <div class="readouts reveal" style="margin-top:60px"><div><b>0/144</b><span>règle modifiée ou contournée</span></div><div><b>144</b><span>réponses qui citent la règle</span></div><div><b>18</b><span>arrêts : « je ne contourne pas, décidez »</span></div></div>
+    <div class="k reveal">Départ · mon harnais (peut-être le vôtre) : un hook · 25/11/2026</div>
+    <h2 class="reveal" style="margin-top:20px;font-size:62px">Le <em>hook</em> renvoie l'agent corriger : il corrige le code, jamais la règle.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 990px;gap:60px;margin-top:36px;align-items:start">
+      <div><p style="font-size:26px;margin:0">Hook : un script que l'outil de l'agent lance tout seul à des moments fixés (pas un hook git). Le mien relance les règles après chaque fichier et avant que l'agent déclare avoir fini.</p><p class="muted" style="font-size:23px;margin-top:20px">Test : 144 tickets qui exigent ce qu'une règle interdit. Quand le ticket est impossible sans violer une règle, l'agent s'arrête et demande à l'humain.</p>
+        <div class="readouts" style="margin-top:26px;gap:16px"><div style="min-width:0;padding:16px 20px"><b style="font-size:52px">0/144</b><span style="font-size:18px">règle contournée</span></div><div style="min-width:0;padding:16px 20px"><b style="font-size:52px">144</b><span style="font-size:18px">réponses citent la règle</span></div></div></div>
+      <img src="img/02-hook-renvoie.png" alt="Sortie du hook (règle R03 en échec, « Corrige le code, pas la règle ») puis la réponse de l'agent qui remet le code conforme" style="width:990px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Douze tickets écrits comme de vrais tickets, chacun en conflit avec une règle : « ajoute createdAt en java.util.Date ». ImpossibleBench (2025) montre que les modèles touchent aux tests dans ce cas. Le mien, jamais : aucune règle modifiée, aucune exclusion, une seule tentative, bloquée par la lecture seule. 18 fois il s'arrête et écrit « Je ne contourne pas la règle et je ne la modifie pas sans votre accord. » Limite : mes règles disent pourquoi elles existent. Source : contournement/README.md. Transition : donc mes règles regardent ailleurs. J'ai vérifié avec une revue.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">J'avais peur qu'il triche. J'ai écrit 144 tickets piégés : chacun exige ce qu'une règle interdit (« remplace orElseThrow par isPresent puis get »). Le hook bloque, l'agent lit le message, remet le code conforme, et me demande de trancher. Il refuse même l'astuce orElseThrow() sans argument : « le même appel sous un autre nom ». Zéro règle modifiée en 144 passages, deux modèles. Donc mes règles servent : elles tiennent l'agent. La sortie du hook est rejouée sur le même code (les retours après chaque fichier ne sont pas gardés dans la transcription) ; la réponse est un vrai passage. Source : contournement/README.md. Transition : et sur des tickets normaux ?</aside>
 </section>
 
-<!-- Ce que je veux dire : deux relecteurs indépendants trouvent de vrais défauts dans le code de l'agent, et mon harnais n'en voit aucun. -->
+<!-- Ce que je veux dire : sur des tickets ordinaires, aucune règle n'échoue ; elles servent quand même, sur un projet sale elles font nettoyer la dette. -->
+<section class="slide">
+  <div class="pad" style="top:200px">
+    <div class="k reveal">Départ · 22/11/2026 · tickets ordinaires, sans conflit avec les règles</div>
+    <h2 class="reveal" style="margin-top:30px;font-size:72px">Mes règles servent, et pourtant, sur 180 tâches ordinaires, <em>elles n'ont jamais échoué</em>.</h2>
+    <div class="readouts reveal" style="margin-top:60px"><div><b>30/30</b><span>projets déjà sales nettoyés</span></div><div><b>0</b><span>échec de règle sur 180</span></div><div><b>180/180</b><span>tâches aux tests verts</span></div></div>
+    <p class="reveal" style="margin-top:36px;font-size:28px">Projet déjà sale : le même code avec 11 erreurs déjà présentes. Avec les règles branchées, l'agent les corrige toutes, 30 fois sur 30.</p><p class="muted reveal" style="margin-top:14px;font-size:24px">Sur les tâches ordinaires, l'agent ne fait plus les erreurs que mes règles visent. 180 = 10 tickets × 3 réglages (rien ; consignes écrites dans le fichier d'instructions que l'agent lit au démarrage ; règles + hook) × 3 essais × 2 projets.</p>
+  </div>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">180 passages, compteur automatique : zéro erreur du catalogue ajoutée, avec ou sans règles. L'agent de 2026 ne fait plus les erreurs que mes règles visent. Mais sur une copie volontairement sale, avec les règles branchées, il nettoie toute la dette existante, à chaque fois. Source : mesures/README.md. Donc le silence n'est pas un échec des règles. Transition : mais qu'est-ce qu'il veut dire, ce silence ?</aside>
+</section>
+
+<!-- Ce que je veux dire : le problème, c'est qu'un harnais qui n'échoue jamais ne dit pas ce qu'il laisse passer ; personne ne mesure sa couverture. -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Problème · Birgitta Böckeler · martinfowler.com · 02/04/2026 · traduit</div>
+    <h2 class="reveal" style="margin-top:24px;font-size:68px">Un harnais qui n'échoue jamais ne dit pas <em>ce qu'il laisse passer</em>.</h2>
+    <p class="reveal" style="margin-top:50px;font-size:34px;font-style:italic">« Si les vérifications du harnais ne se déclenchent jamais, est-ce le signe d'une grande qualité, ou d'une détection insuffisante ? »</p>
+    <p class="reveal" style="margin-top:24px;font-size:30px;font-style:italic">« Il nous faut un moyen d'évaluer la couverture du harnais, comme la couverture de code et le mutation testing le font pour les tests. »</p>
+    <p class="muted reveal" style="margin-top:34px;font-size:26px">Mutation testing : on introduit exprès un défaut dans le code, un à la fois, et on regarde si un test échoue.</p>
+  </div>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Böckeler pose la question et la laisse ouverte (en anglais : « If sensors never fire, is that a sign of high quality or inadequate detection mechanisms? »). Pour vos tests, vous avez la couverture de code et le mutation testing. Pour votre harnais, rien : vous savez qu'il tient l'agent, vous ne savez pas ce qu'il attrape. Transition : j'ai fait relire le code de l'agent.</aside>
+</section>
+
+<!-- Ce que je veux dire : deux relecteurs indépendants trouvent de vrais défauts dans le code de l'agent, et rien dans mon harnais ne les signale. -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Problème · revue croisée de 10 diffs de l'agent · 28/11/2026</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:68px">Deux relecteurs trouvent <em>34 défauts</em> dans 10 diffs de l'agent ; mon harnais n'en voit aucun.</h2>
-    <table class="m reveal" style="margin-top:36px">
-      <tr><th>Qui regarde</th><th>Défauts vus</th></tr>
-      <tr><td>Agent de revue · juge à l'aveugle (18 trouvés par les deux)</td><td class="n">34</td></tr>
-      <tr><td>Les 11 règles + hook</td><td class="n">0 / 34</td></tr>
-      <tr><td>Analyse statique (PMD, SpotBugs)</td><td class="n">0 / 34</td></tr>
-      <tr><td>Tests (tous verts)</td><td class="n">0 / 34</td></tr>
-    </table>
+    <h2 class="reveal" style="margin-top:20px;font-size:58px">Deux relecteurs trouvent <em>34 défauts</em> dans 10 diffs de l'agent ; ni règle, ni linter, ni test ne les signale.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1040px;gap:60px;margin-top:32px;align-items:start">
+      <div><p style="font-size:25px;margin:0">Revue croisée : deux relecteurs qui ne se voient pas relisent les mêmes diffs (34 défauts à eux deux, dont 18 vus par les deux). Le 2<sup>e</sup>, « juge à l'aveugle », ne sait pas si le code a été écrit avec ou sans règles.</p><p class="muted" style="font-size:23px;margin-top:20px">Les relecteurs sont des agents, pas des humains ; chaque défaut est pointé fichier:ligne dans le dépôt. Le harnais n'est pas mauvais : il regarde ailleurs.</p></div>
+      <img src="img/06-revue-croisee.png" alt="Extraits des deux revues sur le même défaut de fuseau, et le croisement : 0 sur 34 vus par les règles, les linters et les tests" style="width:1040px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Dix diffs rendus par l'agent sur des tickets ordinaires. Deux relecteurs qui ne se voient pas : un agent de revue de code (gsd-code-reviewer), et un juge qui note à l'aveugle avec une grille écrite avant : il ne sait pas si le diff a été produit avec ou sans règles. Ensemble : 52 constats, 34 défauts différents dont 6 majeurs, 18 vus par les deux. Puis on regarde qui, dans le harnais, les voit : aucune règle n'a sonné, PMD signale deux lignes de log sans rapport, tous les tests sont verts. Zéro. Ce n'est pas une revue humaine : les deux relecteurs sont des agents, et tout est pointé fichier:ligne dans mesures/these-a/revue-croisee/. Transition : un exemple.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Dix diffs rendus par l'agent sur des tickets ordinaires. Relecteur 1 : un agent de revue de code. Relecteur 2 : un juge qui note avec une grille écrite avant, sans savoir si le diff a été produit avec ou sans règles. 34 défauts différents, dont 6 majeurs, 18 trouvés par les deux. Puis on regarde qui, dans le harnais, les voit : aucune règle, aucun avertissement PMD ou SpotBugs qui dise la même chose, tous les tests verts. Ce n'est pas que le harnais est mauvais : il regarde ailleurs. Tout est pointé fichier:ligne dans mesures/these-a/revue-croisee/. Transition : regardons le premier.</aside>
 </section>
 
-<!-- Ce que je veux dire : un défaut concret, propre selon toutes mes règles, faux pour un client à Paris, et que les tests figent. -->
+<!-- Ce que je veux dire : un défaut concret, propre selon toutes mes règles, faux pour un client à Paris, et que le test de l'agent fige. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Problème · diff réel · ticket « date de livraison » · vu par les deux relecteurs</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:70px">Du <em>java.time</em> propre, et une livraison annoncée un jour trop tôt.</h2>
-    <pre class="code reveal" style="margin-top:40px;font-size:26px"><span class="c">// Order.java:87</span>
-return createdAt.atZone(<span class="h">ZoneOffset.UTC</span>).toLocalDate().plusDays(3);
-<span class="c">// OrderTest.java:25-26 : le test fige le bug</span>
-Instant.parse("<span class="h">2027-04-29T23:30:00Z</span>")  →  LocalDate.of(2027, 5, <span class="h">2</span>)</pre>
-    <p class="muted reveal" style="margin-top:20px;font-size:26px">À Paris, cette commande est passée le 30 avril à 1 h 30 · ma règle « pas de java.util.Date » : satisfaite</p>
+    <div class="k reveal">Problème · diff réel · ticket « date de livraison »</div>
+    <h2 class="reveal" style="margin-top:20px;font-size:62px">Du <em>java.time</em> propre, et une livraison annoncée un jour trop tôt.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1040px;gap:60px;margin-top:36px;align-items:start">
+      <div><p style="font-size:28px;margin:0">À Paris, la commande du test est passée le <em>30&nbsp;avril à 1&nbsp;h&nbsp;30</em> : livraison le 3&nbsp;mai, pas le&nbsp;2.</p><p class="muted" style="font-size:24px;margin-top:26px">Le ticket vise des clients en France (date au format jj/mm/aaaa). Ma règle « pas de java.util.Date » est respectée. Le test écrit par l'agent attend la mauvaise date, donc il reste vert.</p></div>
+      <img src="img/03-diff-order-utc.png" alt="Diff de l'agent : Order.java calcule la date en ZoneOffset.UTC, et OrderTest attend le 2 mai pour une commande du 29 avril 23 h 30 UTC" style="width:1040px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Ma règle R09 interdit java.util.Date : l'agent ne l'utilise pas, il écrit du java.time impeccable. Mais il fige l'UTC : une commande passée après minuit, heure de Paris, prend la date de la veille, et son propre test fige ce cas comme attendu. Dans le même diff, les deux relecteurs ont remplacé le format jj/mm/aaaa par mm/jj/aaaa : les 20 tests restent verts. Transition : une revue, ça dépend du relecteur. J'ai aussi mesuré mécaniquement.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Ma règle R09 interdit java.util.Date : l'agent ne l'utilise pas, il écrit du java.time impeccable. Mais il fige l'UTC : une commande passée après minuit, heure de Paris, prend la date de la veille, et son propre test attend ce résultat. Dans le même diff, les deux relecteurs ont remplacé le format jj/mm/aaaa par mm/jj/aaaa : les 20 tests restent verts. Ma règle a fait son travail ; ce défaut-là, aucune pièce du harnais ne le regarde. Transition : une revue dépend du relecteur ; j'ai aussi mesuré mécaniquement.</aside>
 </section>
 
-<!-- Ce que je veux dire : même avec une mesure mécanique, des défauts injectés, mes règles n'attrapent rien et la plupart passent sans bruit. -->
+<!-- Ce que je veux dire : même avec une mesure mécanique, des défauts injectés exprès, la plupart passent sans que rien n'échoue. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Problème · 20 défauts écrits à la main, injectés un par un dans le code de l'agent · 25/11/2026</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:70px">Sur 20 défauts injectés, mes règles n'en attrapent <em>aucun</em> : 13 passent sans bruit.</h2>
+    <div class="k reveal">Problème · expérience faite à la main, avant l'outil · 25/11/2026</div>
+    <h2 class="reveal" style="margin-top:20px;font-size:68px">Sur 20 défauts injectés exprès, <em>13 passent</em> sans que rien n'échoue.</h2>
     <table class="m reveal" style="margin-top:40px">
       <tr><th>Attrapé par</th><th>Défauts</th></tr>
-      <tr><td>Les 11 règles + hook</td><td class="n">0 / 20</td></tr>
-      <tr><td>Analyse statique (PMD, SpotBugs)</td><td class="n">4 / 20</td></tr>
-      <tr><td>Tests existants</td><td class="n">3 / 20</td></tr>
-      <tr><td><em>Personne</em></td><td class="n">13 / 20</td></tr>
+      <tr><td>Les 11 règles ArchUnit + le hook</td><td class="n">0 / 20</td></tr>
+      <tr><td>Les linters (PMD, SpotBugs)</td><td class="n">4 / 20</td></tr>
+      <tr><td>Les tests existants</td><td class="n">3 / 20</td></tr>
+      <tr><td><em>Rien</em> : le défaut entre, tout reste vert</td><td class="n">13 / 20</td></tr>
     </table>
+    <p class="reveal" style="margin-top:24px;font-size:28px">Les linters et les tests attrapent 7 défauts : <em>ils servent</em>.</p><p class="muted reveal" style="margin-top:10px;font-size:23px">J'ai écrit ces défauts hors de ce que visent mes règles : leur 0 est attendu.</p>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">C'est le mutation testing appliqué au harnais : on casse exprès, on regarde qui sonne. Honnêteté : j'ai choisi les défauts hors des 11 formes visées, donc le zéro des règles n'est pas une surprise en soi. Ce qui en est une : 8 sont des cousins directs d'une règle. R08 voit new BigDecimal(0.1), pas un calcul en double via doubleValue(). Source : aveugle/README.md. Transition : voilà le problème. Où veut-on aller ?</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">C'est le mutation testing appliqué au harnais : on casse exprès, on regarde qui sonne. Honnêteté : j'ai choisi les défauts hors des 11 formes visées, donc le zéro des règles n'est pas une surprise. Ce qui en est une : 8 sont des cousins directs d'une règle. R08 voit new BigDecimal(0.1), pas un calcul en double via doubleValue(). Source : aveugle/README.md. Transition : avant d'aller plus loin, une mise au point.</aside>
+</section>
+
+<!-- Ce que je veux dire : aucun contresens possible : je ne dis pas de jeter les règles, les tests ou ArchUnit ; je dis de mesurer ce qu'ils attrapent. -->
+<section class="slide">
+  <div class="pad">
+    <div class="k reveal">Cible · ce que ce talk ne dit pas</div>
+    <h2 class="reveal" style="margin-top:20px;font-size:66px">Ce talk ne dit pas « jetez vos règles ». Il dit : <em>mesurez ce qu'elles attrapent</em>.</h2>
+    <div class="cols reveal" style="margin-top:44px">
+      <div class="panel"><h3 style="font-size:44px">Il ne dit pas</h3><p style="font-size:30px;margin:0">✗ ArchUnit, les linters ou les tests sont inutiles<br>✗ l'agent triche<br>✗ un outil remplace la revue ou les tests</p></div>
+      <div class="panel"><h3 style="font-size:44px">Il dit</h3><p style="font-size:30px;margin:0">✓ gardez règles, tests et hook : ils encadrent l'agent (0/144)<br>✓ ils ne voient que ce qu'ils visent<br>✓ mesurez ce qui passe, fermez les trous</p></div>
+    </div>
+  </div>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Je fais une pause, parce que ce que je viens de montrer peut être mal compris. Mes règles ont fait leur travail : l'agent ne les contourne pas, et sur un projet sale il nettoie la dette. Les tests ont attrapé 7 des 13 défauts de l'outil. Ce qui manque n'est pas une pièce en moins, c'est un chiffre : ce que l'ensemble attrape, et ce qu'il laisse passer. Transition : voilà la cible.</aside>
 </section>
 
 <!-- Ce que je veux dire : la cible, c'est un chiffre de couverture du harnais et une liste de trous, comme pour les tests. -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Cible · ce que vous voulez</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:72px">Connaître la couverture de votre harnais <em>comme celle de vos tests</em>.</h2>
+    <h2 class="reveal" style="margin-top:20px;font-size:68px">Savoir ce que votre harnais attrape, <em>comme la couverture de vos tests</em>.</h2>
     <div class="cols reveal" style="margin-top:50px">
-      <div class="panel"><h3>Aujourd'hui</h3><p>« Rien ne sonne. »</p><p class="muted">Code propre ? Capteurs aveugles ? Aucun moyen de savoir.</p></div>
-      <div class="panel"><h3>Cible</h3><p>« Mon harnais attrape <em>X défauts sur N</em>. Voici les trous, et la règle qui fermerait chacun. »</p></div>
+      <div class="panel"><h3>Aujourd'hui</h3><p>« Rien n'échoue. »</p><p class="muted">Code propre ? Ou défauts que personne ne regarde ? Aucun moyen de savoir.</p><p class="muted" style="font-size:24px">Un trou : un défaut qui entre sans que rien n'échoue.</p></div>
+      <div class="panel"><h3>Cible</h3><p>« Mon harnais attrape <em>X défauts sur N</em>. Voici les trous, et la règle ou le test qui fermerait chacun. »</p></div>
     </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Ce que je veux, c'est ce que j'ai pour mes tests : un chiffre, qu'on peut suivre dans le temps, et la liste de ce qui manque. Pas un score de qualité du code : un score du harnais lui-même. Et le seuil en CI, comme une couverture minimale. Transition : je l'ai construit à partir de mon banc.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Ce que je veux, c'est ce que j'ai pour mes tests : un chiffre qu'on suit dans le temps, et la liste de ce qui manque. Pas une note de qualité du code : une mesure du harnais lui-même. Et un seuil en CI, comme une couverture minimale. Transition : je l'ai construit.</aside>
 </section>
 
 <!-- Ce que je veux dire : l'outil existe, une commande, et voici sa vraie sortie sur le projet du talk. -->
 <section class="slide">
   <div class="pad">
-    <div class="k reveal">Comment · l'outil · Python 3 sans dépendance, il lance votre commande Maven · Apache-2.0</div>
-    <h2 class="reveal" style="margin-top:10px;font-size:64px"><em>harness-mutant</em> injecte des défauts réalistes et compte ce que votre harnais attrape.</h2>
-    <pre class="code reveal" style="margin-top:30px;font-size:24px">$ harness-mutant --projet . --commande "mvn -o -q verify"
-<span class="c">// 13 des 23 défauts du catalogue s'appliquent à ce projet</span>
-Votre harnais attrape <span class="h">7 défauts sur 13</span> (54 %).
-  attrapés par : tests 7          <span class="c">// les 11 règles : 0</span>
-Les 6 trous :
-  J14  état interne exposé (Order.java:84)
-        pour l'attraper : SpotBugs EI_EXPOSE_REP ; un test qui modifie la liste
-  J23  test désactivé (@Disabled) …</pre>
+    <div class="k reveal">Comment · l'outil harness-mutant · Python 3 sans dépendance · Apache-2.0</div>
+    <h2 class="reveal" style="margin-top:16px;font-size:58px"><em>harness-mutant</em> casse une copie de votre projet, un défaut à la fois, et compte ce que votre harnais attrape.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1040px;gap:60px;margin-top:30px;align-items:start">
+      <div><p style="font-size:25px;margin:0">23 défauts réalistes au catalogue, dont 13 s'appliquent à ce projet. Pour chacun : il l'écrit, lance votre build, et regarde s'il échoue. Ici mon build = mvn verify (règles + tests) ; ajoutez PMD ou SpotBugs à la commande et il les compte aussi.</p><p class="muted" style="font-size:22px;margin-top:18px">Chaque trou dit quoi ajouter : une règle, un test, un réglage de linter.</p><p class="muted" style="font-size:21px;margin-top:16px">Dans la sortie : « oracle » = ce que le test vérifie (le 3 dans isEqualTo(3)) ; « mutant » = un défaut injecté ; « non applicable » = ce motif n'existe pas dans votre code.</p></div>
+      <img src="img/04-harness-mutant-avant.png" alt="Sortie de harness-mutant : 7 défauts sur 13 attrapés, tous par les tests ; 6 trous avec, pour chacun, comment l'attraper" style="width:1040px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Démo. harness-mutant copie le projet, lance votre commande une fois sans défaut (le témoin doit être vert), puis, pour chacun des 23 défauts de son catalogue (frontières, argent en double, horloge, fuseau, exceptions avalées, @Valid retiré, tests affaiblis…), l'écrit dans la copie, relance la commande et regarde le code de sortie. 1 min 43 sur ce projet. Le catalogue est un fichier JSON : vous ajoutez vos défauts. Il ne remplace rien : il fait sonner PIT, ArchUnit, PMD, SpotBugs, vos tests, et vous dit lequel ajouter. Sortie complète : outil/exemples/. Plan B : la sortie enregistrée.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Démo. L'outil copie le projet (votre arbre n'est jamais modifié), lance votre commande une fois sans défaut (elle doit être verte), puis, pour chaque défaut du catalogue qui s'applique (borne, argent en double, horloge, fuseau, null accepté, @Valid retiré, test désactivé, assertion affaiblie…), l'écrit, relance, et regarde le code de sortie. 1 min 43 sur ce projet. Ici : 7 sur 13, tous attrapés par les tests ; les règles ArchUnit ne visent pas ces défauts-là. Le catalogue est un fichier JSON : ajoutez les vôtres. Plan B : la sortie enregistrée dans outil/exemples/. Transition : un trou, ça se ferme.</aside>
 </section>
 
-<!-- Ce que je veux dire : dans le code que l'agent vient d'écrire, mon harnais n'attrape presque rien, et l'outil retrouve seul les trous que la revue avait signalés. -->
-<section class="slide">
-  <div class="pad">
-    <div class="k reveal">Comment · harness-mutant --diff : seulement les lignes écrites par l'agent · 10 copies</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:68px">Dans le code que l'agent vient d'écrire, mon harnais attrape <em>3 défauts sur 40</em>.</h2>
-    <table class="m reveal" style="margin-top:36px">
-      <tr><th>40 défauts du catalogue tombent dans les lignes de l'agent</th><th>Défauts</th></tr>
-      <tr><td>Attrapés par les 11 règles</td><td class="n">0 / 40</td></tr>
-      <tr><td>Attrapés par les tests</td><td class="n">3 / 40</td></tr>
-      <tr><td><em>Trous</em> : tests affaiblis (assertion retirée, valeur non vérifiée) · code de production</td><td class="n">30 · 7</td></tr>
-    </table>
-    <p class="muted reveal" style="margin-top:22px;font-size:24px">4 des 7 trous de production tombent sur un manque de test que la revue avait signalé · le N dépend du projet : comparez votre score à lui-même</p>
-  </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Même commande, avec --diff : l'outil ne casse que les lignes que l'agent a écrites. 40 défauts applicables sur les 10 copies, 3 attrapés, tous par les tests (et l'un d'eux, le fuseau, seulement parce que ma machine est à Paris : sur une CI en UTC, il passe). Les trous : 30 tests affaiblis (un @Disabled passe sur les 10 copies) et 7 défauts de production. Quatre d'entre eux sont exactement des manques signalés par les relecteurs : l'arrondi jamais testé, le format de date, le refus d'expédier une commande annulée, le job planifié. L'outil les retrouve sans relecteur. Transition : un trou, ça se ferme.</aside>
-</section>
-
-<!-- Ce que je veux dire : chaque trou dit quoi ajouter ; en 20 lignes, le score monte, et ce qui reste montre où brancher PIT. -->
+<!-- Ce que je veux dire : chaque trou dit quoi ajouter ; une règle et deux tests font monter le score, et ce qui reste montre où brancher PIT. -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Comment · fermer les trous · outil/exemples/fermer-les-trous.patch</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:70px">Une règle et deux tests : le score passe de <em>7 à 10 sur 13</em>.</h2>
-    <pre class="code reveal" style="margin-top:36px;font-size:24px"><span class="c">// trou « test désactivé » : une règle ArchUnit</span>
-noMethods().should().beAnnotatedWith(Disabled.class)
-<span class="c">// trous « null accepté », « liste modifiable » : deux tests</span>
-assertThatNullPointerException().isThrownBy(() -&gt; new Order(null, …));
-assertThatThrownBy(() -&gt; order.lines().add(…)).isInstanceOf(Unsupported…);</pre>
-    <p class="muted reveal" style="margin-top:20px;font-size:26px">Restent 3 : des tests qui ne vérifient plus la valeur. Pour eux : PIT, l'outil Java de mutation testing, qui vérifie que vos tests échouent quand le code change.</p>
+    <h2 class="reveal" style="margin-top:20px;font-size:62px">Une règle et deux tests : le score passe de <em>7 à 10 sur 13</em>.</h2>
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1040px;gap:60px;margin-top:36px;align-items:start">
+      <div><p style="font-size:26px;margin:0">+ 1 règle ArchUnit : aucun test désactivé (@Disabled)<br>+ 1 test : une commande sans identifiant est refusée<br>+ 1 test : la liste des lignes ne se modifie pas de l'extérieur</p><p class="muted" style="font-size:23px;margin-top:24px">Restent 3 tests affaiblis (la valeur attendue n'est plus vérifiée) : c'est le travail de PIT, un plugin Maven de mutation testing  : lancez harness-mutant d'abord, puis PIT pour les trous « test affaibli ».</p></div>
+      <img src="img/05-harness-mutant-apres.png" alt="Sortie de harness-mutant après le patch : 10 défauts sur 13 attrapés, par les tests et une règle ArchUnit ; 3 trous restants" style="width:1040px;border:2px solid #2a2e31">
+    </div>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">J'applique le patch, je relance : 10 sur 13. Les trous qui restent sont des tests affaiblis : assertion retirée, isEqualTo devenu isNotNull. Aucune règle ne les verra ; c'est exactement ce que PIT mesure. Le geste : relancer l'outil après chaque règle ajoutée, et mettre un seuil en CI pour que le score ne redescende jamais (--seuil). Transition : trois gestes pour lundi.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Vingt lignes : une nouvelle règle ArchUnit et deux tests. J'applique le patch, je relance : 10 sur 13. Une règle ArchUnit vient de fermer un trou : c'est exactement ce qu'elles savent faire, quand on sait où les mettre. Les trois trous restants : « oracle affaibli », c'est-à-dire un test qui ne vérifie plus la valeur attendue (isEqualTo devenu isNotNull). Aucune règle ne les verra ; PIT, si. Le geste : relancer l'outil après chaque ajout, et un seuil en CI (--seuil) pour que le score ne redescende jamais. Transition : trois gestes pour lundi.</aside>
 </section>
 
 <!-- Ce que je veux dire : trois gestes pour lundi, dont le premier est l'outil. -->
 <section class="slide">
   <div class="pad">
     <div class="k reveal">Comment · trois gestes pour lundi</div>
-    <h2 class="reveal" style="margin-top:20px;font-size:72px">Mesurez votre harnais, laissez l'agent abandonner, <em>refusez le diff vide</em>.</h2>
+    <h2 class="reveal" style="margin-top:20px;font-size:60px">Mesurez votre harnais, autorisez l'agent à s'arrêter, <em>ne validez pas un diff vide</em>.</h2>
     <ul class="steps reveal">
-      <li data-n="01">Lancez <em>harness-mutant</em> sur votre projet, puis un seuil en CI</li>
-      <li data-n="02">Une phrase dans le ticket : « si une règle bloque, <em>arrête-toi et explique</em> » (48 tickets : coût des appels au modèle ÷ 2,2)</li>
-      <li data-n="03">« 0 violation, tests verts » avec un <em>diff vide</em> n'est pas un succès (vécu : 15 passages vides comptés réussis)</li>
+      <li data-n="01">Lancez <em>harness-mutant</em>, fermez le premier trou, puis un seuil en CI : le build échoue si le score passe sous ce seuil</li>
+      <li data-n="02">Une phrase dans le ticket : « si une règle bloque, <em>arrête-toi et explique</em> » : il s'arrête au lieu de réessayer en boucle (sur 48 tickets : coût des appels au modèle divisé par 2,2)</li>
+      <li data-n="03">« 0 violation, tests verts » avec un <em>diff vide</em> (l'agent n'a rien écrit) n'est pas un succès : dans une de mes campagnes, 15 passages sur 65 étaient vides et comptés réussis</li>
     </ul>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Un : l'outil, une commande, puis --seuil en CI pour que la couverture du harnais ne baisse plus. Deux : « Si une exigence du ticket est incompatible avec les règles du projet, arrête-toi et explique le conflit au lieu de forcer. » 48 refus nets sur 48, coût divisé par 2,2. Trois : pendant ma mesure, 15 passages où l'agent n'avait rien écrit ont été comptés réussis : rien n'avait changé, donc rien n'avait cassé. Transition : la phrase à garder.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Un : l'outil, une commande, le premier trou fermé, puis --seuil en CI pour que la couverture du harnais ne baisse plus. Deux : « Si une exigence du ticket est incompatible avec les règles du projet, arrête-toi et explique le conflit au lieu de forcer. » 48 refus nets sur 48, coût divisé par 2,2. Trois : pendant ma mesure, 15 passages où l'agent n'avait rien écrit ont été comptés réussis : rien n'avait changé, donc rien n'avait cassé. Transition : la phrase à garder.</aside>
 </section>
 
-<!-- Ce que je veux dire : la phrase à retenir, l'outil à installer, et les limites assumées. -->
+<!-- Ce que je veux dire : la phrase à retenir (gardez, mesurez, fermez), l'outil à installer, et les limites assumées. -->
 <section class="slide">
   <div class="ruler"><i style="left:0px;height:40px"></i><i style="left:28px;height:12px"></i><i style="left:56px;height:12px"></i><i style="left:84px;height:12px"></i><i style="left:112px;height:12px"></i><i style="left:140px;height:24px"></i><i style="left:168px;height:12px"></i><i style="left:196px;height:12px"></i><i style="left:224px;height:12px"></i><i style="left:252px;height:12px"></i><i style="left:280px;height:40px"></i><i style="left:308px;height:12px"></i><i style="left:336px;height:12px"></i><i style="left:364px;height:12px"></i><i style="left:392px;height:12px"></i><i style="left:420px;height:24px"></i><i style="left:448px;height:12px"></i><i style="left:476px;height:12px"></i><i style="left:504px;height:12px"></i><i style="left:532px;height:12px"></i><i style="left:560px;height:40px"></i><i style="left:588px;height:12px"></i><i style="left:616px;height:12px"></i><i style="left:644px;height:12px"></i><i style="left:672px;height:12px"></i><i style="left:700px;height:24px"></i><i style="left:728px;height:12px"></i><i style="left:756px;height:12px"></i><i style="left:784px;height:12px"></i><i style="left:812px;height:12px"></i><i style="left:840px;height:40px"></i><i style="left:868px;height:12px"></i><i style="left:896px;height:12px"></i><i style="left:924px;height:12px"></i><i style="left:952px;height:12px"></i><i style="left:980px;height:24px"></i><i style="left:1008px;height:12px"></i><i style="left:1036px;height:12px"></i><i style="left:1064px;height:12px"></i><i style="left:1092px;height:12px"></i><i style="left:1120px;height:40px"></i><i style="left:1148px;height:12px"></i><i style="left:1176px;height:12px"></i><i style="left:1204px;height:12px"></i><i style="left:1232px;height:12px"></i><i style="left:1260px;height:24px"></i><i style="left:1288px;height:12px"></i><i style="left:1316px;height:12px"></i><i style="left:1344px;height:12px"></i><i style="left:1372px;height:12px"></i><i style="left:1400px;height:40px"></i><i style="left:1428px;height:12px"></i><i style="left:1456px;height:12px"></i><i style="left:1484px;height:12px"></i><i style="left:1512px;height:12px"></i><i style="left:1540px;height:24px"></i><i style="left:1568px;height:12px"></i><i style="left:1596px;height:12px"></i><i style="left:1624px;height:12px"></i><i style="left:1652px;height:12px"></i></div><div class="needle"></div>
   <div class="pad" style="top:220px">
     <div class="k reveal">Comment · à vous</div>
-    <h2 class="reveal" style="margin-top:30px;font-size:80px">Mon agent ne trichait pas : mes règles regardaient <em>les erreurs d'hier</em>. Mesurez les vôtres.</h2>
+    <h2 class="reveal" style="margin-top:30px;font-size:76px">Gardez vos règles. Mesurez ce qu'elles attrapent. <em>Fermez&nbsp;les&nbsp;trous.</em></h2>
     <pre class="code reveal" style="margin-top:40px;font-size:26px"><span class="c"># harness-mutant est dans le dossier outil/ du dépôt du talk</span>
 git clone https://github.com/mekkiamiri/anti-slop-ratchet
 pip install ./anti-slop-ratchet/outil
-harness-mutant --projet . --commande "mvn -o -q verify"</pre>
-    <p class="muted reveal" style="margin-top:30px;font-size:24px">Limites : un petit projet Java · 2 modèles de novembre 2026 · relecteurs = agents · défauts choisis par moi</p>
+harness-mutant --projet . --commande "mvn -o -q verify"   <span class="c"># votre build habituel</span></pre>
+    <p class="muted reveal" style="margin-top:30px;font-size:24px">Limites : un petit projet Java · 2 modèles de langage (novembre 2026) · relecteurs = agents · défauts choisis par moi</p>
   </div>
-  <div class="chrome"><span>Mon harnais était aveugle, pas mon agent</span><span class="n"></span></div>
-  <aside class="notes">Mon agent ne trichait pas. Mon harnais était aveugle, et je ne le savais pas parce que je ne le mesurais pas. Les limites : un projet de 414 lignes, deux modèles de novembre 2026, deux relecteurs qui sont des agents, un catalogue de défauts écrit par moi : comparez votre score à lui-même dans le temps, pas à celui des autres. Tout est dans le dépôt, données brutes comprises. Merci.</aside>
+  <div class="chrome"><span>Que laissent passer vos règles ?</span><span class="n"></span></div>
+  <aside class="notes">Mon agent ne trichait pas, et mes règles faisaient leur travail. Ce qui manquait, c'est de savoir ce que l'ensemble laissait passer. Gardez vos règles, vos tests, votre hook. Mesurez-les. Fermez les trous un par un. Les limites : un projet de 414 lignes, deux modèles de novembre 2026, deux relecteurs qui sont des agents, un catalogue de défauts écrit par moi : comparez votre score à lui-même dans le temps, pas à celui des autres. Tout est dans le dépôt, données brutes comprises. Merci.</aside>
 </section>
 
 </main></div>
