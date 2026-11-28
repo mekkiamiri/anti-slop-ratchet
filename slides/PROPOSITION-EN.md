@@ -8,21 +8,24 @@ My Agent Wasn't Cheating. My Harness Was Blind.
 
 ## Abstract
 
-I turned 11 recurring code-review comments into rules that block my coding agent: its harness. Over 180 ordinary tasks, they never fired once. Clean code, or blind sensors? Birgitta Böckeler asks the question and leaves it open.
+You put your coding agent in a harness: tests, linters, ArchUnit rules, a hook that blocks it while anything is red. Mine never fired in 180 tasks. Good sign? Nobody knows: we measure the coverage of our tests, never the coverage of our harness.
 
-I measured both answers. Is the agent cheating? 12 tickets that demand what a rule forbids, 144 runs, two models: zero bypasses; the agent quotes the rule and hands the decision back to you. Are the rules blind? Of 20 realistic defects injected into its code, they caught none, PMD and SpotBugs 4, the tests 3: 13 went unnoticed.
+I measured it. The agent does not cheat: zero bypasses over 144 tickets that demand what a rule forbids. But two reviewers (a code-review agent and a blind judge) found 34 defects in 10 of its diffs, and my harness saw none of them; of 20 injected defects, my rules caught none.
 
-You leave with: a method to measure your harness by injecting defects, as mutation testing does for tests; one sentence that gives the agent a right to give up (cost ÷2.2); a check that fails on an empty diff. Everything is in a public repo, raw data included.
+I turned this into an open-source tool, harness-mutant: one command injects realistic defects into a copy of your project, runs your harness and answers "it catches 7 defects out of 13; here are the holes, and what would close each one".
+
+You leave with: the tool and its extensible defect catalogue; the method to close a hole and track the score in CI; two free guardrails, a right to give up for the agent (cost ÷2.2) and a check that fails on an empty diff.
 
 ## Notes for the committee
 
 - **Not the "ArchUnit guardrails for AI code" talk.** That talk has been given (Devoxx BE 2026). Here the rules are one slide; the subject is measuring the harness itself, answering a question Böckeler left open ("We need a way to evaluate harness coverage … similar to what code coverage and mutation testing do for tests", martinfowler.com, 2 April 2026).
 - **A result against my own expectation**: I expected the agent to game the rules (as ImpossibleBench shows models do with tests); in 144 runs it never did. The real gap was elsewhere: the rules watch yesterday's mistakes.
-- **Every number comes from the public repo** (github.com/mekkiamiri/anti-slop-ratchet, `mesures/`): three campaigns run in November 2026 (180, 144 and 50 agent runs), with raw JSONL, classifier, defect injector and replay commands; 31 runs checked by hand. Slides online: mekkiamiri.github.io/anti-slop-ratchet/slides/
-- **Limits are said on stage**: one small Java project (414 lines), two models (November 2026), a code review played by an agent (not a human), 20 defects chosen by the speaker outside the 11 forms the rules target. What does not depend on those choices: no rule fired on any of the 50 runs, and none caught the 8 defects that are close cousins of a rule.
-- **Demo**: the real transcript of the agent pleading, and one injected defect replayed live with the repo's injector (`injecter.py`), on a copy rebuilt from the published diff (`git apply`); recorded video as plan B.
-- **Timing (30 min)**: 0-5:30 the harness and the silence · 5:30-14:30 hypothesis 1, cheating (refuted) · 14:30-25 hypothesis 2, blindness (confirmed) · 25-30 three gestures, limits, repo.
-- **Speaker experience**: [to be completed by Mekki: meetups, JUG, video link]. Adaptable to a 15-min Quickie (hypothesis 2 only).
+- **The tool ships in the repo** (`outil/`, Python standard library, Apache-2.0, tests in CI): `harness-mutant --projet . --commande "mvn -o -q verify"`; real outputs in `outil/exemples/`.
+- **Every number comes from the public repo** (github.com/mekkiamiri/anti-slop-ratchet, `mesures/`): three campaigns run in November 2026 (180, 144 and 50 agent runs), with raw JSONL, classifier, defect injector and replay commands; 31 runs checked by hand; a cross review of 10 diffs (review agent + blind judge, rubric written beforehand). Slides online: mekkiamiri.github.io/anti-slop-ratchet/slides/
+- **Limits are said on stage**: one small Java project (414 lines), two models (November 2026), two reviewers that are agents (not humans), a defect catalogue written by the speaker. What does not depend on those choices: no rule fired on any of the 50 runs, and none caught the 8 defects that are close cousins of a rule.
+- **Demo**: harness-mutant on the talk's project (1 min 43 s), then a patch of one rule and two tests that moves the score from 7 to 10 out of 13; recorded outputs as plan B.
+- **Timing (30 min), four steps**: 0-5 starting point (your harness, 180 silent tasks) · 5-14 problem (a silent harness says nothing; no cheating; cross review: 34 defects, 0 seen; 20 injected, 0 seen) · 14-15:30 target (harness coverage, like test coverage) · 15:30-30 how (harness-mutant demo, on the agent's code, closing 3 holes; three gestures; limits).
+- **Speaker experience**: [to be completed by Mekki: meetups, JUG, video link]. Adaptable to a 20-min Quickie (the four steps and the tool demo).
 
 ## Bio
 

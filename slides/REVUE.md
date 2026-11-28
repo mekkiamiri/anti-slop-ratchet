@@ -1,5 +1,103 @@
 # Revues du deck « Mon harnais était aveugle, pas mon agent »
 
+## Deck v3 (28/11/2026, branche `deck-v3`) : le chemin en 4 étapes, l'outil, la revue croisée
+
+Constat de départ (Mekki, sur le deck v2) : « en lisant les diapos je ne comprends pas le point de départ,
+le point cible, le problème et comment faire » ; « il manque un outil qu'on met sur notre GitHub ».
+
+Ce qui change :
+
+| Avant (v2) | Après (v3) |
+|---|---|
+| Arc « hypothèse 1 réfutée, hypothèse 2 confirmée », 16 slides | 14 slides, chacune dans une étape affichée en surtitre : Départ (1-3) → Problème (4-8) → Cible (9) → Comment (10-14) |
+| Preuve principale de cécité : revue simulée (38 remarques d'un seul agent, 0 vue) | Revue croisée sur les mêmes 10 diffs : agent de revue `gsd-code-reviewer` + juge à l'aveugle (grille écrite avant, diffs anonymisés) ; 34 défauts, 6 majeurs (tous vus par les deux), **0 vu par le harnais** (règles, PMD/SpotBugs, tests). L'ancienne revue devient un historique. |
+| Méthode « rejouable avec injecter.py » | Outil livré `harness-mutant` (outil/, Python stdlib, 16 tests, CI) : `harness-mutant --projet . --commande "mvn -o -q verify"` → 7/13, puis 10/13 après une règle et deux tests ; `--diff` sur les lignes de l'agent : 3/40 |
+| Promesse : une méthode + deux garde-fous | Promesse : l'outil + la méthode pour fermer un trou + deux garde-fous |
+
+Banc de devkit : le code de notation du banc spec-driven n'existe que dans le dossier de travail (pas sous
+`02-Personal`, où `lab/benchmarks/spec-driven` ne contient que la spec) ; il n'a pas été lu ni recopié. Seule la
+méthode générique, décrite dans la page d'état des bancs, a été reprise : sorties renommées par des lettres,
+juge à l'aveugle, grille fixée avant, défauts pondérés par gravité ([grille-juge.md](../mesures/these-a/revue-croisee/grille-juge.md)).
+Aucun chiffre, nom ou contenu de l'appli du travail.
+
+### Test de clarté
+
+Protocole : un agent relecteur neuf reçoit **seulement** le texte des slides (titres + corps, sans notes ni
+PLAN.md) et le profil « développeur Java intermédiaire qui n'a jamais entendu parler du sujet ». Il répond
+en 5 lignes (départ, problème, cible, comment, outil) et dit ce qui est flou. Comparaison avec PLAN.md.
+
+**Tour 1** (14 slides, première version) :
+
+1. Départ : « j'ai mis mon agent de code sous contrôle (tests, linters, règles ArchUnit tirées de mes revues, un hook qui relance tout). Comme rien ne passe au rouge, je pense que le code produit est bon. »
+2. Problème : « ce silence ne prouve rien. L'agent ne triche pas, mais mes règles ne voient presque aucun des vrais défauts (0 sur 34 trouvés en revue, 0 sur 20 défauts injectés). Elles surveillent les erreurs d'hier. »
+3. Cible : « connaître la couverture de mon harnais comme je connais celle de mes tests : combien de défauts il attrape sur N, où sont les trous et quelle règle ou quel test fermerait chacun. »
+4. Comment : « injecter volontairement des défauts réalistes, si possible dans les lignes écrites par l'agent, compter ce que le harnais attrape, fermer les trous, fixer un seuil en CI, autoriser l'agent à abandonner et refuser un tout vert quand le diff est vide. »
+5. Outil : « harness-mutant, `git clone …anti-slop-ratchet` puis `pip install ./anti-slop-ratchet/outil`, lancé avec `harness-mutant --projet . --commande "mvn -o -q verify"`. »
+- Flou : « droit d'abandonner (coût ÷ 2,2) » sans dire quel coût ; les totaux 13, 20, 40 changent sans explication ; « tests affaiblis / oracles » non défini ; le dépôt n'a pas le nom de l'outil ; un outil Python surprend un dev Java ; « 18 décisions rendues à l'humain » obscur.
+
+Verdict : les 5 réponses sont justes par rapport à PLAN.md. Six points flous, corrigés :
+slide 5 « 18 arrêts : « je ne contourne pas, décidez » » ; slide 8 « 20 défauts écrits à la main » ;
+slide 10 « 13 des 23 défauts du catalogue s'appliquent à ce projet » et « Python 3 sans dépendance, il lance
+votre commande Maven » ; slide 11 « 40 défauts du catalogue tombent dans les lignes de l'agent » et « tests
+affaiblis (assertion retirée, valeur non vérifiée) » ; slide 12 « des tests qui ne vérifient plus la valeur » ;
+slide 13 « « si une règle bloque, arrête-toi et explique » (facture de l'agent ÷ 2,2) » ; slide 14
+« l'outil est dans le dépôt du talk ».
+
+**Tour 2** (relecteur neuf, slides corrigées) :
+
+1. Départ : « tu as mis ton agent de code dans un cadre (tests, linters, règles ArchUnit, un hook qui relance tout) et tu crois que ça le surveille. Comme rien ne passe jamais au rouge, tu penses que tout va bien. »
+2. Problème : « quand rien ne sonne, tu ne sais pas si le code est bon ou si tes contrôles ne voient rien. Les chiffres montrent qu'ils ne voient rien : l'agent ne triche pas, mais les relecteurs trouvent 34 défauts que tes règles laissent passer, et sur 20 bugs injectés, tes règles n'en attrapent aucun. »
+3. Cible : « pouvoir dire « mon cadre attrape X défauts sur N », comme une couverture de code, avec la liste des trous et la règle ou le test qui fermerait chacun. »
+4. Comment : « injecter exprès des défauts réalistes (dans tout le projet, ou seulement dans les lignes écrites par l'agent avec --diff) et compter ceux que le build attrape ; fermer les trous avec des règles ou des tests ciblés, fixer un seuil en CI, dire à l'agent de s'arrêter et d'expliquer quand une règle le bloque, refuser un diff vide comme succès. »
+5. Outil : « harness-mutant (Python, Apache-2.0) : `git clone https://github.com/mekkiamiri/anti-slop-ratchet && pip install ./anti-slop-ratchet/outil`, puis `harness-mutant --projet . --commande "mvn -o -q verify"`. »
+- Flou : « harnais » compris seulement à la slide 2 ; lien avec PIT pas clair ; dépôt « anti-slop-ratchet » contre outil « harness-mutant » ; quel nombre retenir (20, 13, 40) ; « facture de l'agent ÷ 2,2 » sort de nulle part.
+
+Verdict : 5 réponses justes. Corrigé : slide 2, ligne « Harnais = tout ce qui entoure l'agent pour vérifier son code » ;
+slide 12, PIT défini (« l'outil Java de mutation testing, qui vérifie que vos tests échouent quand le code change ») ;
+slide 11, « le N dépend du projet : comparez votre score à lui-même » ; slide 13, « coût des appels au modèle ÷ 2,2, mesuré » ;
+slide 14, « harness-mutant est dans le dossier outil/ du dépôt du talk ».
+
+**Tour 3** (relecteur neuf, dernier tour) :
+
+1. Départ : « j'ai mis mon agent de code dans un cadre (tests, linters, règles ArchUnit, un hook qui relance tout) et comme rien ne sonne jamais, je me dis que tout va bien. »
+2. Problème : « le silence ne prouve rien. Les règles ne détectent aucun des vrais défauts trouvés en revue (0 sur 34) ni aucun des défauts injectés à la main (0 sur 20). Ce n'est pas l'agent qui triche, ce sont mes règles qui ne regardent pas au bon endroit, par exemple un bug de fuseau horaire avec un code java.time pourtant propre. »
+3. Cible : « connaître la couverture de mon harnais comme je connais celle de mes tests : j'attrape X défauts sur N, voici les trous et la règle qui fermerait chacun. »
+4. Comment : « injecter des défauts réalistes (le projet entier ou seulement les lignes écrites par l'agent), compter ceux que le build attrape, fermer les trous avec des règles ou des tests (et PIT pour les tests faibles), mettre un seuil en CI, demander à l'agent de s'arrêter quand une règle le bloque, refuser un diff vide présenté comme un succès. »
+5. Outil : « harness-mutant : `git clone https://github.com/mekkiamiri/anti-slop-ratchet && pip install ./anti-slop-ratchet/outil`, puis `harness-mutant --projet . --commande "mvn -o -q verify"`. »
+- Flou : les tests font-ils partie du harnais (le titre de la slide 2 ne parlait que de règles) ; beaucoup de totaux différents (13, 20, 23, 34, 40) ; « coût ÷ 2,2 » sans explication ; « refusez le diff vide » sans slide qui l'amène.
+
+Verdict : **réussi aux trois tours** (les 5 réponses sont justes et précises par rapport à PLAN.md à chaque
+tour ; dès le tour 2, le relecteur cite aussi `--diff`, le seuil en CI et PIT). Dernières retouches après le
+tour 3, sans nouveau tour (3 au maximum) : titre de la slide 2 « tests, linters et règles qui bloquent… » ;
+slide 13 « (48 tickets : coût des appels au modèle ÷ 2,2) » et « (vécu : 15 passages vides comptés réussis) ».
+Reste assumé : plusieurs totaux de défauts (20 du banc, 34 de la revue, 13 et 40 de l'outil). Chaque slide dit
+d'où vient le sien ; la note de la slide 11 dit lequel retenir (le vôtre, comparé à lui-même dans le temps).
+
+### Grille du comité (v3)
+
+| Critère | v2 | v3 | Justification |
+|---|---|---|---|
+| Unicité | 4 | 5 | Un outil installable qui répond à la question ouverte de Böckeler (couverture du harnais), adossé à des mesures publiées : rien d'équivalent dans les programmes 2026. |
+| Légitimité | 3 | 3 | Inchangée : pas de nouveau fait (PR non fusionnées, pas de scène renseignée). |
+| Promesse | 4 | 5 | « Vous repartirez avec » : un outil, une commande, un catalogue à étendre, et deux garde-fous chiffrés. |
+| Concret | 5 | 5 | 374 passages + revue croisée + outil testé en CI + sorties réelles. |
+| Actualité | 5 | 5 | « Harness engineering » reste le sujet ; l'angle « mesurer le harnais » est mûr. |
+| Clarté | 4 | 5 | Chemin en 4 étapes visible sur chaque slide ; test de clarté réussi (5 réponses justes dès le tour 1). |
+| Risque speaker | 3 | 3 | Démo de l'outil en direct (1 min 43, sortie enregistrée en plan B) ; reste à 3 sans expérience de scène renseignée. |
+| Format | 5 | 5 | 14 slides pour 30 min (table de PLAN.md à 30 min pile), liste Quickie 20 min. |
+| **Total** | **33** | **36** | Seuil 32 atteint, aucun critère sous 3. |
+
+### Ce qui reste à Mekki (v3)
+
+1. **Relire les 6 défauts majeurs** de la revue croisée (`mesures/these-a/revue-croisee/README.md`, 15 min) : ce sont les constats que les deux relecteurs (deux agents) partagent ; une confirmation humaine renforce la slide 6.
+2. **Nom de l'outil** : `harness-mutant` retenu (libre sur GitHub et PyPI le 28/11/2026). Autres noms libres vérifiés : `blindspot-probe`, `harness-catch`. `harness-probe` est pris sur GitHub (deux dépôts, dont un qui mesure déjà « harness » au sens modèle + outillage). Si changement : `outil/pyproject.toml`, `outil/harness_mutant/`, slides 10-14, PLAN, propositions.
+3. **Publier sur PyPI** (facultatif) : aujourd'hui l'installation passe par `git clone` + `pip install ./outil`.
+4. Expérience de scène, accord employeur, référence du talk ArchUnit de Devoxx BE 2026, vidéo de secours : inchangés (voir plus bas).
+
+---
+
+## Historique : revues du deck v2
+
 Trois revues successives avant la vérification de Mekki (28/11/2026), sur la branche `deck-v2`. Gravité : 🔴 casse dans la salle · 🟡 coûte de la force · ⚪ goût. Aucune nouvelle mesure n'a été lancée : tout chiffre vient des fichiers de `mesures/`.
 
 ## Revue 1 : l'argument

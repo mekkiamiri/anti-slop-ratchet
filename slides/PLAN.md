@@ -1,58 +1,65 @@
-# Plan du deck v2 : « Mon harnais était aveugle, pas mon agent »
+# Plan du deck v3 : « Mon harnais était aveugle, pas mon agent »
 
-Tools-in-Action, 30 min, 16 slides. Source : `slides/slides.html` → `docs/slides/index.html`.
+Tools-in-Action, 30 min, 14 slides (liste Quickie 20 min plus bas). Source : `slides/slides.html` → `docs/slides/index.html`.
+Chaque slide appartient à une des 4 étapes, affichée en surtitre : **Départ → Problème → Cible → Comment**.
 
-**Public :** tech leads, architectes et développeurs qui encadrent des agents de code avec des règles (linters, ArchUnit, hooks), niveau intermédiaire à avancé.
+**Public :** développeurs Java, tech leads et architectes qui encadrent un agent de code avec des règles (tests, linters, ArchUnit, hooks), niveau intermédiaire.
 
-**Objectif du talk (ce que le public fera lundi) :** mesurer la couverture de son propre harnais, en injectant quelques défauts réalistes et en comptant ce qui sonne, au lieu de se rassurer parce que ses règles ne sonnent jamais.
+## Le chemin en 4 étapes
+
+| Étape | En une phrase |
+|---|---|
+| **Départ** (ce que vous avez) | Vous avez mis votre agent de code dans un harnais : tests, linters, règles ArchUnit, un hook qui le bloque tant que c'est rouge. Les règles ne sonnent jamais (180 tâches, 0 violation). |
+| **Problème** (ce qui fait mal) | Un harnais muet ne dit pas s'il protège. Mesuré : l'agent ne triche pas (0 contournement sur 144), mais deux relecteurs trouvent 34 défauts dans 10 de ses diffs et le harnais n'en voit aucun ; sur 20 défauts injectés, les règles en attrapent 0. Le harnais rassure, il ne protège pas. |
+| **Cible** (ce que vous voulez) | Connaître la couverture de votre harnais comme celle de vos tests : un score, la liste des trous, et la règle ou le test qui fermerait chacun. |
+| **Comment** (l'outil + 3 gestes) | 1. Lancer `harness-mutant` sur votre projet (il injecte des défauts réalistes et compte ce qui sonne), fermer les trous, mettre un seuil en CI. 2. Donner à l'agent le droit d'abandonner (coût ÷ 2,2). 3. Refuser un résultat « 0 violation, tests verts » si le diff est vide. |
+
+**L'outil :** `harness-mutant` (dossier `outil/`, Python bibliothèque standard, Apache-2.0).
+`harness-mutant --projet . --commande "mvn -o -q verify"` → « Votre harnais attrape 7 défauts sur 13 (54 %) ; les 6 trous : … ». S'appuie sur PIT (l'idée du mutation testing), ArchUnit, PMD, SpotBugs, Maven. Nom vérifié libre sur GitHub et PyPI le 28/11/2026 (« harness-probe » était pris sur GitHub par deux dépôts, dont un sur un sujet voisin).
+
+**Objectif du talk (ce que le public fera lundi) :** lancer `harness-mutant` sur son projet, lire ses trous, et fermer le premier.
 
 **Promesse (« vous repartirez avec ») :**
-1. La réponse mesurée à la question de Böckeler sur ce projet : l'agent ne contourne pas les règles (0 contournement sur 144 passages), mais elles n'attrapent aucun des 20 défauts injectés.
-2. Une méthode pour mesurer son harnais : injecter des défauts réalistes, comme le mutation testing le fait pour les tests, et compter qui sonne (rejouable avec `injecter.py`).
-3. Deux garde-fous gratuits : donner à l'agent le droit d'abandonner (coût ÷ 2,2) et refuser un passage dont le diff est vide.
+1. La réponse mesurée à la question de Böckeler sur un vrai harnais : l'agent ne contourne pas les règles, elles ne voient pas ses défauts.
+2. Un outil open source pour mesurer la couverture de votre harnais en une commande, avec un catalogue de défauts extensible.
+3. Deux garde-fous gratuits : le droit d'abandonner, le diff vide refusé.
 
-**Le message en une phrase :** vos règles ne sonnent jamais ; pas parce que l'agent triche (il ne triche pas), mais parce qu'elles regardent les erreurs d'hier et que les siennes sont ailleurs ; mesurez votre harnais comme vous mesurez vos tests.
+**Le message en une phrase :** si vos règles ne sonnent jamais, ne vous en félicitez pas : mesurez ce qu'elles attrapent.
 
-**Tension (une phrase) :** un harnais muet peut vouloir dire « code propre » ou « capteurs aveugles », et rien dans le harnais ne permet de trancher (slide 2, gardée vivante jusqu'à la slide 12).
+## Table par slide
 
-Titres proposés (≤ 60 caractères) :
-1. « Mon harnais était aveugle, pas mon agent » (41) : **retenu**, il dit la conclusion et réfute l'idée reçue.
-2. « Vos règles ne sonnent jamais. Bonne nouvelle ? » (47)
-3. « Mesurez votre harnais comme vous mesurez vos tests » (51)
-
-Arc : situation (1-3) · complication (4 : le silence, qualité ou cécité ?) · hypothèse 1 réfutée (5-9) · hypothèse 2 confirmée (10-14) · résolution (15-16).
-
-| n° | titre-phrase | objectif : le public pense… | preuve | durée |
-|---|---|---|---|---|
-| 1 | Mon harnais était aveugle, pas mon agent. | « Contre-intuitif : je veux savoir pourquoi. » | 180 tâches, 0 règle qui sonne, 13/20 défauts invisibles | 1 min |
-| 2 | Si vos capteurs ne sonnent jamais, personne ne sait si c'est bon signe. | « Je me suis déjà posé la question. » | citation de Böckeler, martinfowler.com, 02/04/2026 ; définition du harnais en une ligne | 1 min 30 |
-| 3 | J'ai changé 11 remarques de revue en 11 règles qui bloquent l'agent. | « C'est un vrai harnais, comme le mien. » | une règle (R08) + le hook PostToolUse/Stop (RATCHET.md) | 1 min 30 |
-| 4 | Sur 180 tâches, mes règles n'ont jamais sonné. | « Bonne nouvelle… ou pas ? » | 180 passages, 0 erreur du catalogue, dette nettoyée 30/30 (mesures/README.md) | 1 min 30 |
-| 5 | Peut-être que l'agent triche : on sait que les modèles touchent aux tests. | « Plausible, j'ai lu ça. » | ImpossibleBench, arXiv 2510.20270 | 1 min 30 |
-| 6 | Je lui ai donné 12 tickets qui exigent ce qu'une règle interdit. | « Le test est honnête : il avait toutes les raisons de tricher. » | protocole : 12 tickets, 3 variantes, 2 modèles, 144 passages | 2 min |
-| 7 | Il n'a jamais contourné une règle : il la cite. | « Il ne triche pas. » | 0 contournement sur 144, 1 tentative bloquée | 2 min |
-| 8 | Bloqué, il ne triche pas : il plaide. | « Le vrai risque, c'est le blocage, pas la triche. » | citation réelle (I07, Sonnet 5.5), 18 passages build rouge | 2 min 30 |
-| 9 | Lui donner le droit d'abandonner coûte 2,2 fois moins cher. | « Une phrase à ajouter dès lundi. » | V3 : 48/48 refus nets, coût ÷ 2,2 | 1 min |
-| 10 | Peut-être que mes règles regardent les erreurs d'hier. | « Et si c'était ça ? » | les 11 règles viennent de revues de code humain | 1 min |
-| 11 | J'ai mesuré mon harnais deux fois : une revue de 10 diffs, puis 20 défauts injectés. | « La méthode est réutilisable chez moi, et il dit d'entrée que la revue est jouée par un agent. » | protocole (aveugle/README.md) | 2 min |
-| 12 | Mes règles n'attrapent aucun des 20 défauts injectés : 13 passent sans aucun bruit. | « Mon harnais est peut-être aveugle aussi. » | tableau : défauts 0/4/3/13 sur 20 (mécanique) ; remarques du relecteur simulé 0/38 ; aucune règle n'a sonné sur 50 copies | 3 min |
-| 13 | Du java.time propre, et une livraison annoncée un jour trop tôt. | « Voilà à quoi ressemble un défaut de 2026. » | Order.java:87, OrderTest.java:25-26 | 2 min 30 |
-| 14 | « 0 violation, tests verts » : c'est aussi ce que rend un agent qui n'a rien fait. | « Je vérifie le diff dès demain. » | 15 passages vides comptés réussis | 2 min |
-| 15 | Mesurez votre harnais comme vous mesurez vos tests. | « Je repars avec une méthode et deux garde-fous. » | les 3 gestes + limites | 3 min 30 |
-| 16 | Mon agent ne trichait pas : mes règles regardaient les erreurs d'hier. Et les vôtres ? | La phrase à retenir, et la question à se poser lundi. | dépôt public, données brutes | 1 min 30 |
+| n° | étape | titre-phrase | objectif : le public pense… | preuve | durée |
+|---|---|---|---|---|---|
+| 1 | Départ | Mon harnais était aveugle, pas mon agent. | « Contre-intuitif, et il y a un outil au bout. » | 180 tâches, 0 règle qui sonne ; 0/34 défauts de revue vus | 1 min 30 |
+| 2 | Départ | Vous avez mis votre agent de code dans un harnais : tests, linters et règles qui bloquent tant que c'est rouge. | « C'est exactement mon équipe. » | mon harnais : 11 règles ArchUnit + hook (RATCHET.md) | 2 min |
+| 3 | Départ | Sur 180 tâches, mes 11 règles n'ont jamais sonné. | « Chez moi non plus, et j'en étais content. » | mesures/README.md : 180 passages, 0 violation, 30/30 verts | 1 min 30 |
+| 4 | Problème | Un harnais muet ne dit pas si votre code est bon ou si vos capteurs sont aveugles. | « Je ne sais pas ce que mon harnais attrape. » | Böckeler, martinfowler.com, 02/04/2026 | 2 min |
+| 5 | Problème | Ce n'est pas l'agent qui triche : 0 contournement sur 144 tickets qui exigent ce qu'une règle interdit. | « Le risque n'est pas la triche. » | contournement/README.md : 0/144, 144 citent la règle, 18 décisions rendues | 2 min 30 |
+| 6 | Problème | Deux relecteurs trouvent 34 défauts dans 10 diffs de l'agent ; mon harnais n'en voit aucun. | « Mon harnais ne regarde pas là où l'agent se trompe. » | revue-croisee/ : agent de revue 31 constats, juge à l'aveugle 21, 34 défauts, 0 vu par règles / PMD-SpotBugs / tests | 3 min |
+| 7 | Problème | Du java.time propre, et une livraison annoncée un jour trop tôt. | « Voilà à quoi ressemble un défaut d'agent en 2026. » | Order.java:87, OrderTest.java:25-26 ; format mm/jj : 20 tests verts | 2 min |
+| 8 | Problème | Sur 20 défauts injectés, mes règles n'en attrapent aucun : 13 passent sans bruit. | « Même mécaniquement, c'est aveugle. » | aveugle/defauts-resultats.jsonl : 0 / 4 / 3 / 13 | 2 min |
+| 9 | Cible | Connaître la couverture de votre harnais comme celle de vos tests. | « C'est ça que je veux. » | (la cible, pas de chiffre) | 1 min 30 |
+| 10 | Comment | harness-mutant injecte des défauts réalistes et compte ce que votre harnais attrape. | « Une commande, je peux le faire lundi. » | outil/exemples/sortie-projet-du-talk.txt : 7/13, tests 7, règles 0 ; démo live | 3 min 30 |
+| 11 | Comment | Dans le code que l'agent vient d'écrire, mon harnais attrape 3 défauts sur 40. | « L'outil retrouve sans relecteur ce que la revue avait vu. » | revue-croisee/harnais-lignes-agent/ : règles 0, tests 3, trous 37 (30 tests affaiblis, 7 production, dont 4 signalés par la revue) | 2 min |
+| 12 | Comment | Une règle et deux tests : le score passe de 7 à 10 sur 13. | « Chaque trou se ferme ; ce qui reste, c'est le travail de PIT. » | outil/exemples/fermer-les-trous.patch, sortie-apres-patch.txt | 2 min 30 |
+| 13 | Comment | Mesurez votre harnais, laissez l'agent abandonner, refusez le diff vide. | « Trois gestes, dont un outil. » | ÷ 2,2 (V3, 48/48) ; 15 passages vides comptés réussis | 2 min |
+| 14 | Comment | Mon agent ne trichait pas : mes règles regardaient les erreurs d'hier. Mesurez les vôtres. | La phrase à retenir, et la commande à taper. | dépôt public, limites | 2 min |
 
 Total : 30 min.
 
+## Quickie 20 min (10 slides)
+
+1, 2, 4, 6, 7, 9, 10, 12, 13, 14 : on garde le chemin (départ → problème → cible → comment) et la démo ; on retire les 180 tâches (dites en une phrase sur la 2), la triche (dite en une phrase sur la 6), l'injection du banc (8, remplacée par la démo) et les 10 copies (11).
+
 ## Skim test (titres lus seuls)
 
-Mon harnais était aveugle, pas mon agent. Si vos capteurs ne sonnent jamais, personne ne sait si c'est bon signe. J'ai changé 11 remarques de revue en 11 règles qui bloquent l'agent ; sur 180 tâches, elles n'ont jamais sonné. Peut-être que l'agent triche : je lui ai donné 12 tickets qui exigent ce qu'une règle interdit ; il n'a jamais contourné, il cite la règle ; bloqué, il plaide ; et lui donner le droit d'abandonner coûte 2,2 fois moins cher. Peut-être alors que mes règles regardent les erreurs d'hier : je mesure mon harnais deux fois, une revue de 10 diffs et 20 défauts injectés ; mes règles n'attrapent aucun des 20 défauts, 13 passent sans aucun bruit, comme ce java.time propre qui livre un jour trop tôt ; et « 0 violation, tests verts », c'est aussi un agent qui n'a rien fait. Mesurez votre harnais comme vos tests : mon agent ne trichait pas, mes règles regardaient les erreurs d'hier. Et les vôtres ?
-
-Résultat : l'argument tient de bout en bout, la tension posée en 2 n'est résolue qu'en 12. Accrocs de la revue 1 : voir `slides/REVUE.md`.
+Mon harnais était aveugle, pas mon agent. Vous avez mis votre agent de code dans un harnais : tests, linters et règles qui bloquent tant que c'est rouge. Sur 180 tâches, mes 11 règles n'ont jamais sonné. Un harnais muet ne dit pas si votre code est bon ou si vos capteurs sont aveugles. Ce n'est pas l'agent qui triche : 0 contournement sur 144. Deux relecteurs trouvent 34 défauts dans 10 diffs de l'agent ; mon harnais n'en voit aucun, comme ce java.time propre qui livre un jour trop tôt ; sur 20 défauts injectés, mes règles n'en attrapent aucun. Je veux connaître la couverture de mon harnais comme celle de mes tests : harness-mutant injecte des défauts et compte ce qui sonne ; dans le code que l'agent vient d'écrire, mon harnais attrape 3 défauts sur 40 ; une règle et deux tests font passer le score de 7 à 10 sur 13. Mesurez votre harnais, laissez l'agent abandonner, refusez le diff vide : mes règles regardaient les erreurs d'hier, mesurez les vôtres.
 
 ## Sources des chiffres
 
-- `mesures/README.md` : 180 passages, 0 erreur du catalogue, dette nettoyée 30/30, +59 % de coût.
-- `mesures/these-a/contournement/README.md` et `donnees.jsonl` : 144 passages, 0 contournement, 1 tentative bloquée, 18 violations laissées, V3 48/48, coût ÷ 2,2 (0,245 $ contre 0,111 $ par passage), durée ÷ 3,1, Opus 33/48 contre Sonnet 18/48.
-- `mesures/these-a/aveugle/README.md`, `revue.json`, `defauts-resultats.jsonl` : 38 remarques d'un relecteur simulé (0 vue ; échantillon de 10 à relire par Mekki, voir REVUE.md), 20 défauts (0 règles, 4 outils, 3 tests, 13 personne), 15 passages invalides, 414 lignes, couverture > 92 %.
-- Böckeler, « Harness engineering for coding agent users », martinfowler.com, 02/04/2026 (citation vérifiée sur la page).
-- ImpossibleBench, arXiv 2510.20270 (23/10/2025) (phrase citée vérifiée dans le résumé).
+- `mesures/README.md` : 180 passages, 0 violation ajoutée, 30/30 tests verts, dette nettoyée 30/30, +59 %.
+- `mesures/these-a/contournement/` : 144 passages, 0 contournement, 1 tentative bloquée, 18 décisions rendues, V3 48/48, coût ÷ 2,2.
+- `mesures/these-a/revue-croisee/` (28/11/2026) : agent de revue 31 constats, juge à l'aveugle 21, 34 défauts uniques dont 18 trouvés par les deux et 6 majeurs ; vus par les 11 règles 0, par PMD/SpotBugs 0 (2 avertissements GuardLogStatement sur les mêmes lignes, sans rapport), par les tests 0 (témoins verts) ; harness-mutant sur les lignes de l'agent : 40 défauts, 0 attrapé par les règles, 3 par les tests, 37 trous.
+- `mesures/these-a/aveugle/` (25/11/2026) : 20 défauts injectés (0 règles, 4 outils, 3 tests, 13 personne), 15 passages invalides. L'ancienne revue simulée (38 remarques, 0 vue) est gardée comme historique.
+- `outil/exemples/` : sorties réelles de harness-mutant (7/13 avant, 10/13 après le patch).
+- Böckeler, « Harness engineering for coding agent users », martinfowler.com, 02/04/2026 ; ImpossibleBench, arXiv 2510.20270.

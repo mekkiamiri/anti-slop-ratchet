@@ -9,6 +9,21 @@ Dépôt de démo du talk « Mon agent ne fait plus d'AI slop : à quoi bon mes r
 - La méthode, le prompt type et le branchement du hook : [RATCHET.md](RATCHET.md)
 - Le banc de mesure (tickets, projet sale, compteur, données brutes) : [mesures/](mesures/)
 
+## L'outil : harness-mutant
+
+Mesurez la couverture de votre propre harnais en une commande : `harness-mutant` injecte des défauts
+réalistes dans une copie de votre projet, lance votre harnais et compte ce qu'il attrape.
+
+```bash
+pip install ./outil
+harness-mutant --projet . --commande "mvn -o -q verify"
+# Votre harnais attrape 7 défauts sur 13 (54 %).  attrapés par : tests 7
+# Les 6 trous : J13 contrôle de null retiré (Order.java:30) ...
+```
+
+Documentation, catalogue de défauts extensible et sorties réelles : [outil/README.md](outil/README.md).
+Il s'appuie sur [PIT](https://pitest.org/), [ArchUnit](https://www.archunit.org/), [PMD](https://pmd.github.io/) et [SpotBugs](https://spotbugs.github.io/).
+
 ## Ce qui a été mesuré (22/11/2026, 180 passages, modèle servi : Sonnet 5.5)
 
 | Projet | Condition | Nouvelles erreurs | Erreurs à la fin | Tests verts | Coût moyen | Durée |
@@ -51,6 +66,8 @@ Prérequis : Java 21 et Maven. Seulement les règles : `mvn -q test -Dtest='*Arc
 | Mesure : l'agent avec ou sans règles, projet propre et projet sale | fait, 180 passages ([mesures/README.md](mesures/README.md)) |
 | Mesure avec d'autres modèles, sur un gros projet | pas fait |
 | Faux positifs des règles en revue réelle | pas mesuré |
+| Revue croisée de 10 diffs (agent de revue + juge à l'aveugle) | fait le 28/11/2026 : 34 défauts, 0 vu par le harnais ([mesures/these-a/revue-croisee/](mesures/these-a/revue-croisee/README.md)) |
+| Outil `harness-mutant` (Python, bibliothèque standard) | tourne, 16 tests en CI ([outil/](outil/README.md)) ; pas encore publié sur PyPI |
 | Coût en temps de la commande du hook | 2,7 s sur ce projet après un fichier modifié (5 passages, 22/11/2026) ; gros module : pas mesuré |
 | Règles sur le code source (Error Prone, Checkstyle) | pas fait |
 | Adoption sur du code existant avec `FreezingArchRule` | décrite dans RATCHET.md, pas d'exemple dans ce dépôt |

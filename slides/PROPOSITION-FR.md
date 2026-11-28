@@ -8,11 +8,13 @@ Mon harnais était aveugle, pas mon agent
 
 ## Abstract
 
-J'ai changé 11 remarques de revue récurrentes en règles qui bloquent mon agent de code : c'est son harnais. Sur 180 tâches ordinaires, elles n'ont jamais sonné. Code propre ou capteurs aveugles ? Birgitta Böckeler pose la question et la laisse ouverte.
+Vous avez mis votre agent de code dans un harnais : tests, linters, règles ArchUnit, un hook qui le bloque tant que c'est rouge. Le mien n'a jamais sonné en 180 tâches. Bon signe ? Personne ne le sait : on mesure la couverture de ses tests, jamais celle de son harnais.
 
-J'ai mesuré les deux réponses. L'agent triche-t-il ? 12 tickets qui exigent ce qu'une règle interdit, 144 passages, deux modèles : aucun contournement, il cite la règle et vous rend la décision. Les règles sont-elles aveugles ? Sur 20 défauts réalistes injectés dans son code, elles n'en voient aucun, PMD et SpotBugs 4, les tests 3 : 13 passent sans bruit.
+Je l'ai mesurée. L'agent ne triche pas : 0 contournement sur 144 tickets qui exigent ce qu'une règle interdit. Mais deux relecteurs (un agent de revue et un juge à l'aveugle) trouvent 34 défauts dans 10 de ses diffs, et mon harnais n'en voit aucun ; sur 20 défauts injectés, mes règles n'en attrapent aucun.
 
-Vous repartirez avec : une méthode pour mesurer votre harnais en y injectant des défauts, comme le mutation testing le fait pour les tests ; une phrase qui donne à l'agent le droit d'abandonner (coût ÷ 2,2) ; un contrôle qui refuse le diff vide. Tout est dans un dépôt public, données brutes comprises.
+J'en ai fait un outil open source, harness-mutant : une commande injecte des défauts réalistes dans une copie de votre projet, lance votre harnais et répond « il attrape 7 défauts sur 13 ; voici les trous, et ce qui fermerait chacun ».
+
+Vous repartirez avec : l'outil et son catalogue de défauts à étendre ; la méthode pour fermer un trou et suivre le score en CI ; deux garde-fous gratuits, le droit d'abandonner pour l'agent (coût ÷ 2,2) et le diff vide refusé.
 
 ## Notes au comité
 
@@ -36,33 +38,34 @@ Pourquoi moi :
 Ce qui tourne déjà :
 - Dépôt : github.com/mekkiamiri/anti-slop-ratchet, CI GitHub Actions (mvn verify).
   Sans modèle : python3 mesures/test_compter.py ; python3 mesures/lancer.py --essai-a-blanc
+- L'outil harness-mutant (outil/, Python bibliothèque standard, 16 tests en CI) :
+  harness-mutant --projet . --commande "mvn -o -q verify" ; sorties réelles dans outil/exemples/.
 - Trois campagnes de novembre 2026 (180, 144 et 50 passages d'agent), JSONL bruts,
-  classifieur, injecteur de défauts, commandes pour tout rejouer ; 31 passages relus à la main.
+  classifieur, injecteur de défauts, commandes pour tout rejouer ; 31 passages relus à la main ;
+  revue croisée de 10 diffs (agent de revue + juge à l'aveugle, grille écrite avant).
 - Slides en ligne : mekkiamiri.github.io/anti-slop-ratchet/slides/
-- Démo live : la vraie transcription de l'agent qui plaide, puis un défaut injecté en direct
-  avec injecter.py sur une copie reconstruite depuis le diff publié (git apply).
-  Plan B : vidéo enregistrée.
+- Démo live : harness-mutant sur le projet du talk (1 min 43), puis un patch d'une règle et
+  deux tests qui fait passer le score de 7 à 10 sur 13. Plan B : sorties enregistrées.
 
 Limites dites sur scène :
-- un petit projet Java (414 lignes), deux modèles (novembre 2026), une revue jouée par un
-  agent et non par un humain, 20 défauts choisis par moi hors des 11 formes visées.
+- un petit projet Java (414 lignes), deux modèles (novembre 2026), deux relecteurs qui sont
+  des agents et non des humains, un catalogue de défauts écrit par moi.
   Ce qui ne dépend pas de ces choix : aucune règle n'a sonné sur les 50 copies, et aucune
   n'a vu les 8 défauts cousins directs d'une règle.
 
-Plan minuté (30 min) :
-- 0-4      le harnais et la question de Böckeler (une règle, le hook)
-- 4-5:30   sur 180 tâches, aucune règle ne sonne : qualité ou cécité ?
-- 5:30-14:30  hypothèse 1, l'agent triche : 12 tickets, 144 passages, 0 contournement,
-              l'agent plaide, le droit d'abandon (démo : la transcription)
-- 14:30-25    hypothèse 2, les règles regardent ailleurs : 20 défauts injectés, 0 vu
-              par les règles, un vrai défaut de fuseau (démo : injection en direct)
-- 25-30    trois gestes, limites, dépôt
+Plan minuté (30 min), en 4 étapes :
+- 0-5      Départ : votre harnais (tests, linters, ArchUnit, hook) ; 180 tâches, rien ne sonne
+- 5-14     Problème : un harnais muet ne dit rien ; l'agent ne triche pas (0/144) ;
+           revue croisée : 34 défauts, 0 vu par le harnais ; 20 défauts injectés, 0 vu
+- 14-15:30 Cible : la couverture du harnais, comme celle des tests
+- 15:30-30 Comment : harness-mutant en démo, sur le code de l'agent, fermer 3 trous ;
+           trois gestes ; limites et dépôt
 
 Expérience de scène :
 - [À compléter par Mekki : meetups, JUG, présentations internes (nombre de participants), lien vidéo]
 
 Accord employeur : [à compléter par Mekki]
-Adaptable : Quickie 15 min possible (hypothèse 2 seule : injection de défauts et diff vide).
+Adaptable : Quickie 20 min (10 slides : le chemin et la démo de l'outil).
 ```
 
 ## Bio (3e personne, 364 caractères)
