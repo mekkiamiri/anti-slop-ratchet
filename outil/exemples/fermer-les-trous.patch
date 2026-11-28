@@ -1,0 +1,57 @@
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+index b3f7cad..36a514d 100644
+--- a/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
++++ b/src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java
+@@ -1,6 +1,7 @@
+ package io.github.mekkiamiri.ratchet.order.domain;
+ 
+ import static org.assertj.core.api.Assertions.assertThat;
++import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+ import static org.assertj.core.api.Assertions.assertThatThrownBy;
+ 
+ import java.math.BigDecimal;
+@@ -40,4 +41,15 @@ class OrderTest {
+                 .isInstanceOf(InvalidOrderException.class)
+                 .hasMessageContaining("positive");
+     }
++
++    @Test
++    void anOrderNeedsAnId() {
++        assertThatNullPointerException().isThrownBy(() -> new Order(null, "ada", Instant.EPOCH));
++    }
++
++    @Test
++    void linesCannotBeChangedFromOutside() {
++        assertThatThrownBy(() -> order.lines().add(new OrderLine("CAFE", 1, BigDecimal.ONE)))
++                .isInstanceOf(UnsupportedOperationException.class);
++    }
+ }
+diff --git a/src/test/java/io/github/mekkiamiri/ratchet/rules/HarnessGapsArchTest.java b/src/test/java/io/github/mekkiamiri/ratchet/rules/HarnessGapsArchTest.java
+new file mode 100644
+index 0000000..c8770ee
+--- /dev/null
++++ b/src/test/java/io/github/mekkiamiri/ratchet/rules/HarnessGapsArchTest.java
+@@ -0,0 +1,23 @@
++package io.github.mekkiamiri.ratchet.rules;
++
++import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
++
++import com.tngtech.archunit.core.domain.JavaClasses;
++import com.tngtech.archunit.core.importer.ClassFileImporter;
++import com.tngtech.archunit.core.importer.ImportOption;
++import org.junit.jupiter.api.Disabled;
++import org.junit.jupiter.api.Test;
++
++/** Trou J23 trouvé par harness-mutant : un test désactivé reste vert. */
++class HarnessGapsArchTest {
++
++    @Test
++    void noTestIsDisabled() {
++        JavaClasses tests = new ClassFileImporter()
++                .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
++                .importPackages("io.github.mekkiamiri.ratchet");
++        noMethods().should().beAnnotatedWith(Disabled.class)
++                .because("un test désactivé ne protège plus rien et le rapport reste vert")
++                .check(tests);
++    }
++}

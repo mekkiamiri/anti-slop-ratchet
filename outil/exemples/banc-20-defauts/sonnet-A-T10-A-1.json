@@ -1,0 +1,47 @@
+{
+ "projet": "copie sonnet-A-T10-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 13.6,
+ "comptes": 2,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "test faible": [
+   0,
+   2
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D19",
+   "nom": "test désactivé (@Disabled)",
+   "famille": "test faible",
+   "statut": "trou",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+   "ligne": 7,
+   "avant": "import org.junit.jupiter.api.Test;",
+   "apres": "import org.junit.jupiter.api.Disabled;\nimport org.junit.jupiter.api.Test;",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 11.2
+  },
+  {
+   "id": "D20",
+   "nom": "oracle recalculé avec le code testé",
+   "famille": "test faible",
+   "statut": "trou",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+   "ligne": 22,
+   "avant": "        assertThat(order.total()).isEqualByComparingTo(\"10.00\");",
+   "apres": "        assertThat(order.total()).isEqualByComparingTo(order.lines().get(0).total());",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 8.0
+  }
+ ]
+}

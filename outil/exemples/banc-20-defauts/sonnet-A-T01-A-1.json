@@ -1,0 +1,87 @@
+{
+ "projet": "copie sonnet-A-T01-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 7.6,
+ "comptes": 4,
+ "attrapes": 1,
+ "score": 25,
+ "par_signal": {
+  "tests": 1
+ },
+ "par_famille": {
+  "logique": [
+   1,
+   1
+  ],
+  "argent": [
+   0,
+   1
+  ],
+  "test faible": [
+   0,
+   2
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D01",
+   "nom": "seuil décalé (> devient >=)",
+   "famille": "logique",
+   "statut": "attrape",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "ligne": 79,
+   "avant": "if (subtotal.compareTo(DISCOUNT_THRESHOLD) > 0) {",
+   "apres": "if (subtotal.compareTo(DISCOUNT_THRESHOLD) >= 0) {",
+   "signaux": [
+    "tests"
+   ],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 7.1
+  },
+  {
+   "id": "D02",
+   "nom": "calcul monétaire en double via doubleValue()",
+   "famille": "argent",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "ligne": 80,
+   "avant": "return subtotal.multiply(DISCOUNT_RATE).setScale(2, RoundingMode.HALF_UP);",
+   "apres": "return BigDecimal.valueOf(subtotal.doubleValue() * DISCOUNT_RATE.doubleValue()).setScale(2, RoundingMode.HALF_UP);",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 7.9
+  },
+  {
+   "id": "D03",
+   "nom": "test sans assertion",
+   "famille": "test faible",
+   "statut": "trou",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+   "ligne": 26,
+   "avant": "        assertThat(order.subtotal()).isEqualByComparingTo(\"120.00\");\n        assertThat(order.discount()).isEqualByComparingTo(\"12.00\");\n        assertThat(order.total()).isEqualByComparingTo(\"108.00\");",
+   "apres": "        order.discount();\n        order.total();",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 7.6
+  },
+  {
+   "id": "D04",
+   "nom": "oracle faible (exists au lieu de la valeur)",
+   "famille": "test faible",
+   "statut": "trou",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+   "ligne": 41,
+   "avant": ".andExpect(jsonPath(\"$.discount\").value(12.0))\n                .andExpect(jsonPath(\"$.total\").value(108.0));",
+   "apres": ".andExpect(jsonPath(\"$.discount\").exists())\n                .andExpect(jsonPath(\"$.total\").isNumber());",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 9.0
+  }
+ ]
+}

@@ -1,0 +1,87 @@
+{
+ "projet": "copie sonnet-A-T04-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 6.8,
+ "comptes": 4,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "erreurs": [
+   0,
+   1
+  ],
+  "null": [
+   0,
+   1
+  ],
+  "ressources": [
+   0,
+   1
+  ],
+  "duplication": [
+   0,
+   1
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D08",
+   "nom": "exception avalée avec un log, l'API annonce un succès",
+   "famille": "erreurs",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+   "ligne": 5,
+   "avant": "import java.io.UncheckedIOException;\n",
+   "apres": "",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 6.0
+  },
+  {
+   "id": "D09",
+   "nom": "null renvoyé au lieu d'une liste vide",
+   "famille": "null",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+   "ligne": 55,
+   "avant": "    public List<Order> findAll() {\n        return orders.findAll();",
+   "apres": "    public List<Order> findAll() {\n        List<Order> all = orders.findAll();\n        return all.isEmpty() ? null : all;",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 5.7
+  },
+  {
+   "id": "D10",
+   "nom": "fichier ouvert sans être fermé",
+   "famille": "ressources",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+   "ligne": 32,
+   "avant": "            Files.writeString(file, content, StandardCharsets.UTF_8);",
+   "apres": "            java.io.Writer w = Files.newBufferedWriter(file, StandardCharsets.UTF_8);\n            w.write(content);\n            w.flush();",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 5.9
+  },
+  {
+   "id": "D11",
+   "nom": "méthode dupliquée par copier-coller dans une classe utilitaire",
+   "famille": "duplication",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/CsvText.java",
+   "ligne": 1,
+   "avant": "",
+   "apres": "package io.github.mekkiamiri.ratchet.order.web;\n\n/** Outils texte pour le CSV. */\nfinal class CsvText {\n\n    private CsvText() {\n    }\n\n    /** Guillemets RFC 4180, et neutralisation des formules pour les tableurs. */\n    static String escape(String value) {\n        String safe = !value.isEmpty() && \"=+-@\\t\\r\".indexOf(value.charAt(0)) >= 0 ? \"'\" + value : value;\n        if (safe.contains(\",\") || safe.contains(\"\\\"\") || safe.contains(\"\\n\") || safe.contains(\"\\r\")) {\n            return \"\\\"\" + safe.replace(\"\\\"\", \"\\\"\\\"\") + \"\\\"\";\n        }\n        return safe;\n    }\n}\n",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 6.0
+  }
+ ]
+}

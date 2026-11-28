@@ -1,0 +1,51 @@
+{
+ "projet": "copie sonnet-A-T08-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 8.4,
+ "comptes": 2,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "transactions": [
+   0,
+   1
+  ],
+  "configuration": [
+   0,
+   1
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D17",
+   "nom": "@Transactional contourné par un appel interne (this.)",
+   "famille": "transactions",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+   "ligne": 58,
+   "avant": "    /** Archive les commandes de plus de 30 jours, en une seule transaction. */",
+   "apres": "    /** Point d'entrée de la tâche de nuit. */\n    public int nightlyArchive() {\n        return archiveOldOrders();\n    }\n\n    /** Archive les commandes de plus de 30 jours, en une seule transaction. */",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 14.5
+  },
+  {
+   "id": "D18",
+   "nom": "expression cron fausse (toutes les heures au lieu de chaque nuit)",
+   "famille": "configuration",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderArchiveJob.java",
+   "ligne": 16,
+   "avant": "@Scheduled(cron = \"0 0 2 * * *\", zone = \"UTC\")",
+   "apres": "@Scheduled(cron = \"0 2 * * * *\", zone = \"UTC\")",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 11.8
+  }
+ ]
+}

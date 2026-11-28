@@ -1,0 +1,67 @@
+{
+ "projet": "copie sonnet-A-T03-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 7.5,
+ "comptes": 3,
+ "attrapes": 2,
+ "score": 67,
+ "par_signal": {
+  "tests": 2
+ },
+ "par_famille": {
+  "temps": [
+   2,
+   3
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D05",
+   "nom": "horloge système au lieu de la date de création",
+   "famille": "temps",
+   "statut": "attrape",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "ligne": 87,
+   "avant": "return createdAt.atZone(ZoneOffset.UTC).toLocalDate().plusDays(3);",
+   "apres": "return LocalDate.now(ZoneOffset.UTC).plusDays(3);",
+   "signaux": [
+    "tests"
+   ],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 7.3
+  },
+  {
+   "id": "D06",
+   "nom": "année de semaine (YYYY) dans le format de date",
+   "famille": "temps",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java",
+   "ligne": 10,
+   "avant": "DateTimeFormatter.ofPattern(\"dd/MM/yyyy\")",
+   "apres": "DateTimeFormatter.ofPattern(\"dd/MM/YYYY\")",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 7.6
+  },
+  {
+   "id": "D07",
+   "nom": "fuseau du serveur au lieu d'un fuseau fixé",
+   "famille": "temps",
+   "statut": "attrape",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "ligne": 6,
+   "avant": "import java.time.ZoneOffset;",
+   "apres": "import java.time.ZoneId;",
+   "signaux": [
+    "tests"
+   ],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 8.4
+  }
+ ]
+}

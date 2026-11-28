@@ -1,0 +1,306 @@
+{
+ "version": 1,
+ "description": "Catalogue Java de harness-mutant : défauts réalistes d'agents de code en 2026. Chaque défaut = un motif (expression régulière) et son remplacement ; appliqué au premier endroit qui compile. Ajoutez les vôtres dans un fichier au même format (--defauts).",
+ "defauts": [
+  {
+   "id": "J01",
+   "nom": "seuil décalé (> devient >=)",
+   "famille": "frontière",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "(\\.compareTo\\((?:[^()]|\\([^()]*\\))*\\)\\s*)>(?!=)(\\s*0\\b)",
+   "remplacer": "\\1>=\\2",
+   "pourquoi": "erreur de frontière classique, invisible à la relecture rapide",
+   "pour_l_attraper": "un test à la valeur exacte du seuil ; PIT (mutateur ConditionalsBoundary) le signale"
+  },
+  {
+   "id": "J02",
+   "nom": "borne incluse (<= 0 devient < 0)",
+   "famille": "frontière",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "([\\w.()]+\\s*)<=(\\s*0\\b)",
+   "remplacer": "\\1<\\2",
+   "pourquoi": "accepte la valeur zéro qu'une règle métier refusait",
+   "pour_l_attraper": "un test avec la valeur 0 ; PIT (ConditionalsBoundary)"
+  },
+  {
+   "id": "J03",
+   "nom": "calcul monétaire en double (doubleValue)",
+   "famille": "argent",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "(\\b[\\w.()]+?)\\.multiply\\(((?:[^()]|\\([^()]*\\))*)\\)",
+   "remplacer": "BigDecimal.valueOf(\\1.doubleValue() * (\\2).doubleValue())",
+   "importer": [
+    "java.math.BigDecimal"
+   ],
+   "pourquoi": "la règle « pas de new BigDecimal(double) » ne voit pas ce passage par double",
+   "regle_cousine": "R08",
+   "pour_l_attraper": "une règle ArchUnit : aucune classe de production n'appelle BigDecimal.doubleValue()"
+  },
+  {
+   "id": "J04",
+   "nom": "arrondi tronqué (HALF_UP devient DOWN)",
+   "famille": "argent",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "RoundingMode\\.HALF_(?:UP|EVEN|DOWN)\\b",
+   "remplacer": "RoundingMode.DOWN",
+   "pourquoi": "un centime perdu sur certaines commandes, aucun test sur un demi-centime",
+   "pour_l_attraper": "un test sur un montant qui tombe sur un demi-centime"
+  },
+  {
+   "id": "J05",
+   "nom": "horloge système au lieu de l'horloge injectée",
+   "famille": "temps",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "\\b\\w*[cC]lock\\.instant\\(\\)",
+   "remplacer": "Instant.now()",
+   "importer": [
+    "java.time.Instant"
+   ],
+   "pourquoi": "rend le code non déterministe ; les tests à horloge fixe le cachent souvent",
+   "regle_cousine": "R09",
+   "pour_l_attraper": "une règle ArchUnit : interdire Instant.now() / LocalDate.now() sans Clock en production"
+  },
+  {
+   "id": "J06",
+   "nom": "now() sans l'horloge injectée",
+   "famille": "temps",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "\\b(Instant|LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime)\\.now\\(\\s*\\w*[cC]lock\\s*\\)",
+   "remplacer": "\\1.now()",
+   "pourquoi": "même famille que J05, forme java.time",
+   "regle_cousine": "R09",
+   "pour_l_attraper": "une règle ArchUnit : interdire les appels à now() sans argument"
+  },
+  {
+   "id": "J07",
+   "nom": "fuseau du serveur au lieu d'un fuseau fixé",
+   "famille": "temps",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "ZoneOffset\\.UTC\\b|ZoneId\\.of\\(\\\"[^\\\"]+\\\"\\)",
+   "remplacer": "ZoneId.systemDefault()",
+   "importer": [
+    "java.time.ZoneId"
+   ],
+   "pourquoi": "vert sur la machine du développeur, faux sur un serveur dans un autre fuseau",
+   "regle_cousine": "R09",
+   "pour_l_attraper": "une règle ArchUnit : interdire ZoneId.systemDefault() ; lancer les tests sous -Duser.timezone=Pacific/Kiritimati"
+  },
+  {
+   "id": "J08",
+   "nom": "année de semaine (YYYY) dans un format de date",
+   "famille": "temps",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "(ofPattern\\(\\\"[^\\\"]*?)yyyy",
+   "remplacer": "\\1YYYY",
+   "pourquoi": "faux seulement les derniers jours de décembre",
+   "regle_cousine": "R09",
+   "pour_l_attraper": "SpotBugs FS_BAD_DATE_FORMAT_FLAG_COMBO (ou Error Prone MisusedWeekYear)"
+  },
+  {
+   "id": "J09",
+   "nom": "exception avalée avec un log",
+   "famille": "erreurs",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "catch \\(([\\w.]+(?:\\s*\\|\\s*[\\w.]+)*) (\\w+)\\) \\{(\\s*)throw [^;]+;",
+   "remplacer": "catch (\\1 \\2) {\\3org.slf4j.LoggerFactory.getLogger(\"app\").warn(\"ignoré\", \\2);",
+   "pourquoi": "l'appelant croit que tout s'est bien passé",
+   "regle_cousine": "R01",
+   "pour_l_attraper": "un test du chemin d'erreur (le stockage qui échoue doit donner une erreur, pas un succès)"
+  },
+  {
+   "id": "J10",
+   "nom": "null renvoyé au lieu d'une collection vide ou d'un Optional vide",
+   "famille": "null",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "return (?:List\\.of\\(\\)|Set\\.of\\(\\)|Map\\.of\\(\\)|Collections\\.empty(?:List|Set|Map)\\(\\)|Optional\\.empty\\(\\));",
+   "remplacer": "return null;",
+   "pourquoi": "NullPointerException plus loin, chez l'appelant",
+   "regle_cousine": "R03",
+   "pour_l_attraper": "PMD ReturnEmptyCollectionRatherThanNull ; un test du cas vide"
+  },
+  {
+   "id": "J11",
+   "nom": "ressource ouverte sans être fermée",
+   "famille": "ressources",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "try \\(([\\w.<>]+) (\\w+) = ([^;{]+?)\\) \\{",
+   "remplacer": "{ \\1 \\2 = \\3;",
+   "pourquoi": "fuite de descripteurs sous charge, invisible en test",
+   "pour_l_attraper": "PMD CloseResource ; SpotBugs OS_OPEN_STREAM"
+  },
+  {
+   "id": "J12",
+   "nom": "garde de validation supprimée",
+   "famille": "règles métier",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "if \\(([^{};]+)\\) \\{(\\s*)throw new",
+   "remplacer": "if (false) {\\2throw new",
+   "pourquoi": "un agent qui « simplifie » enlève une vérification ; le cas refusé n'est pas testé",
+   "pour_l_attraper": "un test du cas refusé ; PIT (RemoveConditional)"
+  },
+  {
+   "id": "J13",
+   "nom": "contrôle de null retiré",
+   "famille": "null",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "Objects\\.requireNonNull\\((\\w+)(?:, [^)]*)?\\)",
+   "remplacer": "\\1",
+   "pourquoi": "l'objet se construit avec un champ null, l'erreur sort bien plus loin",
+   "regle_cousine": "R03",
+   "pour_l_attraper": "un test qui construit l'objet avec null"
+  },
+  {
+   "id": "J14",
+   "nom": "état interne exposé (copie défensive retirée)",
+   "famille": "conception",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "return (?:List|Set|Map)\\.copyOf\\((\\w+)\\);",
+   "remplacer": "return \\1;",
+   "pourquoi": "l'appelant peut modifier l'agrégat sans passer par ses règles",
+   "pour_l_attraper": "SpotBugs EI_EXPOSE_REP ; un test qui modifie la liste renvoyée"
+  },
+  {
+   "id": "J15",
+   "nom": "collection non thread-safe dans un singleton",
+   "famille": "concurrence",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "new ConcurrentHashMap<",
+   "remplacer": "new HashMap<",
+   "importer": [
+    "java.util.HashMap"
+   ],
+   "pourquoi": "bug intermittent sous charge, jamais en test unitaire",
+   "pour_l_attraper": "un test de concurrence ; une règle ArchUnit sur les champs des beans @Service/@Repository"
+  },
+  {
+   "id": "J16",
+   "nom": "validation d'entrée retirée (@Valid)",
+   "famille": "API",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "@Valid\\s+(@RequestBody)",
+   "remplacer": "\\1",
+   "pourquoi": "un JSON incomplet donne une NullPointerException et un 500 au lieu d'un 400",
+   "pour_l_attraper": "un test d'API qui envoie un JSON incomplet ; une règle ArchUnit : tout @RequestBody est @Valid"
+  },
+  {
+   "id": "J17",
+   "nom": "mauvais code HTTP pour une erreur métier",
+   "famille": "API",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "HttpStatus\\.(?:NOT_FOUND|CONFLICT|BAD_REQUEST|UNPROCESSABLE_CONTENT|UNPROCESSABLE_ENTITY|FORBIDDEN)\\b",
+   "remplacer": "HttpStatus.INTERNAL_SERVER_ERROR",
+   "pourquoi": "le client ne peut plus distinguer « introuvable » d'une panne",
+   "pour_l_attraper": "un test d'API par code d'erreur"
+  },
+  {
+   "id": "J18",
+   "nom": "expression cron fausse (toutes les heures)",
+   "famille": "planification",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "cron\\s*=\\s*\\\"[^\\\"]*\\\"",
+   "remplacer": "cron = \"0 0 * * * *\"",
+   "pourquoi": "la tâche tourne 24 fois par jour ; aucun test ne regarde l'expression",
+   "pour_l_attraper": "un test qui calcule la prochaine exécution avec CronExpression.parse(...)"
+  },
+  {
+   "id": "J19",
+   "nom": "égalité par référence (== au lieu de equals)",
+   "famille": "logique",
+   "fichiers": [
+    "src/main/java/**/*.java"
+   ],
+   "chercher": "(\\b[a-z]\\w*(?:\\(\\))?)\\.equals\\(([a-z]\\w*(?:\\(\\))?)\\)",
+   "remplacer": "\\1 == \\2",
+   "pourquoi": "vrai en test (mêmes instances), faux en production",
+   "pour_l_attraper": "PMD CompareObjectsWithEquals ; SpotBugs RC_REF_COMPARISON"
+  },
+  {
+   "id": "J20",
+   "nom": "assertion supprimée dans un test",
+   "famille": "tests faibles",
+   "fichiers": [
+    "src/test/java/**/*.java"
+   ],
+   "chercher": "^(\\s*)assertThat\\(((?:[^()]|\\([^()]*\\))*)\\)\\.\\w+\\(((?:[^()]|\\([^()]*\\))*)\\);",
+   "remplacer": "\\1\\2;",
+   "pourquoi": "le test exécute le code et reste vert quoi qu'il arrive",
+   "pour_l_attraper": "PIT : le test ne tue plus aucun mutant ; PMD UnitTestShouldIncludeAssert s'il n'en reste aucune"
+  },
+  {
+   "id": "J21",
+   "nom": "oracle affaibli (isEqualTo devient isNotNull)",
+   "famille": "tests faibles",
+   "fichiers": [
+    "src/test/java/**/*.java"
+   ],
+   "chercher": "\\.(?:isEqualTo|isEqualByComparingTo|containsExactly|hasSize)\\(((?:[^()]|\\([^()]*\\))*)\\)",
+   "remplacer": ".isNotNull()",
+   "pourquoi": "80 % des tests d'agents ont des oracles faibles (arXiv 2606.18168)",
+   "pour_l_attraper": "PIT : les mutants de la valeur survivent"
+  },
+  {
+   "id": "J22",
+   "nom": "oracle JSON affaibli (value devient exists)",
+   "famille": "tests faibles",
+   "fichiers": [
+    "src/test/java/**/*.java"
+   ],
+   "chercher": "jsonPath\\((\\\"[^\\\"]*\\\")\\)\\.value\\(((?:[^()]|\\([^()]*\\))*)\\)",
+   "remplacer": "jsonPath(\\1).exists()",
+   "pourquoi": "le test d'API vérifie que le champ existe, plus sa valeur",
+   "pour_l_attraper": "PIT : les mutants de la valeur survivent"
+  },
+  {
+   "id": "J23",
+   "nom": "test désactivé (@Disabled)",
+   "famille": "tests faibles",
+   "fichiers": [
+    "src/test/java/**/*.java"
+   ],
+   "chercher": "^(\\s*)@Test\\b",
+   "remplacer": "\\1@Disabled @Test",
+   "importer": [
+    "org.junit.jupiter.api.Disabled"
+   ],
+   "pourquoi": "le test ne tourne plus ; le rapport reste vert",
+   "regle_cousine": "R11",
+   "pour_l_attraper": "une règle ArchUnit : aucune méthode @Disabled ; ou faire échouer la CI si des tests sont ignorés"
+  }
+ ]
+}

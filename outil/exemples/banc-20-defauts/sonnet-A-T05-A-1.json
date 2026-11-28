@@ -1,0 +1,33 @@
+{
+ "projet": "copie sonnet-A-T05-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 6.6,
+ "comptes": 1,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "logique": [
+   0,
+   1
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D12",
+   "nom": "transition d'état trop permissive (une commande annulée peut être expédiée)",
+   "famille": "logique",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "ligne": 61,
+   "avant": "        if (status != OrderStatus.CONFIRMED) {",
+   "apres": "        if (status == OrderStatus.DRAFT) {",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 6.1
+  }
+ ]
+}

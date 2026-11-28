@@ -1,0 +1,29 @@
+Projet : . · harnais : « mvn -o -q verify » (témoin vert en 14 s)
+
+Votre harnais attrape 7 défauts sur 13 (54 %).
+  attrapés par : tests 7
+
+Les 6 trous (le défaut est entré, la commande est restée verte) :
+  J13  contrôle de null retiré  (src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java:30)
+        pour l'attraper : un test qui construit l'objet avec null
+  J14  état interne exposé (copie défensive retirée)  (src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java:84)
+        pour l'attraper : SpotBugs EI_EXPOSE_REP ; un test qui modifie la liste renvoyée
+  J20  assertion supprimée dans un test  (src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java:29)
+        pour l'attraper : PIT : le test ne tue plus aucun mutant ; PMD UnitTestShouldIncludeAssert s'il n'en reste aucune
+  J21  oracle affaibli (isEqualTo devient isNotNull)  (src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java:30)
+        pour l'attraper : PIT : les mutants de la valeur survivent
+  J22  oracle JSON affaibli (value devient exists)  (src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java:32)
+        pour l'attraper : PIT : les mutants de la valeur survivent
+  J23  test désactivé (@Disabled)  (src/test/java/io/github/mekkiamiri/ratchet/ShopApplicationTest.java:22)
+        pour l'attraper : une règle ArchUnit : aucune méthode @Disabled ; ou faire échouer la CI si des tests sont ignorés
+
+Attrapés :
+  J02  borne incluse (<= 0 devient < 0)  -> tests
+  J03  calcul monétaire en double (doubleValue)  -> tests
+  J05  horloge système au lieu de l'horloge injectée  -> tests
+  J12  garde de validation supprimée  -> tests
+  J15  collection non thread-safe dans un singleton  -> tests
+  J16  validation d'entrée retirée (@Valid)  -> tests
+  J17  mauvais code HTTP pour une erreur métier  -> tests
+
+Non applicables ici (motif absent) : J01, J04, J06, J07, J08, J09, J10, J11, J18, J19

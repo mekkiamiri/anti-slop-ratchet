@@ -21,3 +21,5 @@ jobs:
       # Toutes les règles anti-slop (ProjectArchTest, TestSourcesArchTest) et leurs propres tests
       # (AntiSlopRulesTest) tournent dans la phase test : une règle cassée bloque la PR.
       - run: mvn -B verify
+      # L'outil harness-mutant (Python, bibliothèque standard) : ses tests ne lancent pas Maven.
+      - run: python3 -m unittest discover -s outil/tests

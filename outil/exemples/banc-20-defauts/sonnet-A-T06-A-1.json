@@ -1,0 +1,69 @@
+{
+ "projet": "copie sonnet-A-T06-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 5.5,
+ "comptes": 3,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "test faible": [
+   0,
+   1
+  ],
+  "concurrence": [
+   0,
+   1
+  ],
+  "logique": [
+   0,
+   1
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D13",
+   "nom": "test qui vérifie le mock au lieu du code",
+   "famille": "test faible",
+   "statut": "trou",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/NotificationServiceTest.java",
+   "ligne": 1,
+   "avant": "",
+   "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\nimport static org.assertj.core.api.Assertions.assertThat;\nimport static org.mockito.Mockito.mock;\nimport static org.mockito.Mockito.when;\n\nimport java.util.List;\nimport org.junit.jupiter.api.Test;\n\nclass NotificationServiceTest {\n\n    @Test\n    void keepsTheSentMessages() {\n        NotificationService notifications = mock(NotificationService.class);\n        when(notifications.sentMessages()).thenReturn(List.of(\"Commande 1 validée pour ada\"));\n\n        assertThat(notifications.sentMessages()).hasSize(1);\n    }\n}\n",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 6.0
+  },
+  {
+   "id": "D14",
+   "nom": "liste partagée non thread-safe dans un singleton",
+   "famille": "concurrence",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+   "ligne": 5,
+   "avant": "import java.util.concurrent.CopyOnWriteArrayList;",
+   "apres": "import java.util.ArrayList;",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 5.9
+  },
+  {
+   "id": "D15",
+   "nom": "notification envoyée avant l'enregistrement",
+   "famille": "logique",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+   "ligne": 48,
+   "avant": "        Order saved = orders.save(order);\n        notifications.orderConfirmed(saved);",
+   "apres": "        notifications.orderConfirmed(order);\n        Order saved = orders.save(order);",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 6.1
+  }
+ ]
+}

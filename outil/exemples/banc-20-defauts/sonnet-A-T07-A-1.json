@@ -1,0 +1,33 @@
+{
+ "projet": "copie sonnet-A-T07-A-1 (arbre de l'agent + les 11 règles remises)",
+ "commande": "mvn -o -q verify",
+ "duree_temoin_s": 5.8,
+ "comptes": 1,
+ "attrapes": 0,
+ "score": 0,
+ "par_signal": {},
+ "par_famille": {
+  "sur-ingénierie": [
+   0,
+   1
+  ]
+ },
+ "non_applicables": [],
+ "ne_compilent_pas": [],
+ "resultats": [
+  {
+   "id": "D16",
+   "nom": "abstraction inutile (interface + fabrique pour une seule règle)",
+   "famille": "sur-ingénierie",
+   "statut": "trou",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/RevenuePolicy.java",
+   "ligne": 1,
+   "avant": "",
+   "apres": "package io.github.mekkiamiri.ratchet.order.application;\n\nimport io.github.mekkiamiri.ratchet.order.domain.Order;\n\n/** Stratégie de prise en compte d'une commande dans le chiffre d'affaires. */\npublic interface RevenuePolicy {\n\n    boolean counts(Order order);\n}\n",
+   "signaux": [],
+   "regle_cousine": null,
+   "pour_l_attraper": "",
+   "duree_s": 8.6
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "harness-mutant"
+version = "0.1.0"
+description = "Mesure la couverture de votre harnais d'agent de code : injecte des défauts réalistes et compte ce que vos règles, tests et linters attrapent."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+harness-mutant = "harness_mutant.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["harness_mutant*"]
+
+[tool.setuptools.package-data]
+harness_mutant = ["defauts/*.json"]
