@@ -1,0 +1,351 @@
+{
+  "diffs": [
+    {
+      "diff": "A",
+      "notes": {
+        "conformite": 4,
+        "justesse": 4,
+        "tests": 3,
+        "conception": 4,
+        "robustesse": 4
+      },
+      "justifications": {
+        "conformite": "Endpoint GET /stats livré, mais le « chiffre d'affaires total » est restreint aux commandes CONFIRMED : interprétation écrite dans la Javadoc, pas demandée par le ticket.",
+        "justesse": "Somme en BigDecimal correcte, liste vide donne 0 ; le nombre compte tous les statuts alors que le chiffre d'affaires n'en garde qu'un, donc les deux chiffres ne portent pas sur le même ensemble.",
+        "tests": "Un test d'intégration par écart (avant/après) qui devient rouge si on retire le filtre ; aucun test unitaire, ni pour le cas vide ni pour les commandes annulées.",
+        "conception": "Port findAll, record applicatif et DTO web, chacun dans sa couche ; un contrôleur à part pour un seul endpoint, ça se défend.",
+        "robustesse": "Pas de fuite ; findAll charge toutes les commandes en mémoire à chaque appel, sans limite."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+          "lignes": "61-68",
+          "gravite": "mineure",
+          "categorie": "conformite",
+          "texte": "Le chiffre d'affaires ne garde que les commandes CONFIRMED (ligne 65) alors que le ticket demande le chiffre d'affaires total, et orderCount compte, lui, tous les statuts."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/StatsControllerTest.java",
+          "lignes": "29-43",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "Le seul test compare des doubles (revenue + 3.0) en s'appuyant sur l'état partagé du contexte Spring ; ni le cas sans commande ni les commandes CANCELLED ne sont testés."
+        }
+      ],
+      "score_defauts": 2
+    },
+    {
+      "diff": "B",
+      "notes": {
+        "conformite": 4,
+        "justesse": 3,
+        "tests": 4,
+        "conception": 3,
+        "robustesse": 4
+      },
+      "justifications": {
+        "conformite": "Frais de 4,90 € sous 50 € et gratuits à partir de 50 € : le ticket est respecté ; la frontière à 50 € pile est tranchée sans être signalée, et les frais n'apparaissent pas dans la réponse.",
+        "justesse": "Une commande vide (brouillon) ou annulée a un total de 4,90 € alors qu'il n'y a rien à expédier.",
+        "tests": "Frontières 49,99 / 50,00 testées avec des oracles exacts et tests existants mis à jour ; le cas de la commande vide n'est pas testé.",
+        "conception": "Calcul dans l'agrégat, propre, mais total() change de sens et la réponse n'expose ni le sous-total ni les frais, ce qui rend le total opaque pour le client.",
+        "robustesse": "BigDecimal et constantes en chaîne : pas de souci d'arrondi ni de fuite."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+          "lignes": "75-83",
+          "gravite": "majeure",
+          "categorie": "justesse",
+          "texte": "shippingFee() renvoie 4,90 quand le sous-total vaut 0, donc une commande vide ou annulée affiche total = 4,90 dans OrderResponse."
+        },
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java",
+          "lignes": "6-10",
+          "gravite": "mineure",
+          "categorie": "contrat-api",
+          "texte": "Le champ total inclut désormais les frais de port sans que subtotal ni shippingFee soient exposés : le sens du contrat change en silence pour les clients de l'API."
+        }
+      ],
+      "score_defauts": 4
+    },
+    {
+      "diff": "C",
+      "notes": {
+        "conformite": 4,
+        "justesse": 4,
+        "tests": 4,
+        "conception": 5,
+        "robustesse": 5
+      },
+      "justifications": {
+        "conformite": "Remise de 10 % strictement au-dessus de 100 €, visible dans la réponse ; le champ subtotal ajouté dépasse un peu la demande.",
+        "justesse": "Seuil strict et arrondi HALF_UP au centime corrects ; le total n'est pas remis à l'échelle quand les prix ont plus de 2 décimales, cas marginal.",
+        "tests": "Frontière à 100 € et cas nominal testés au domaine et en HTTP ; l'arrondi au demi-centime n'est pas testé.",
+        "conception": "Règle dans l'agrégat, constantes nommées, DTO enrichi : simple et cohérent.",
+        "robustesse": "Rien à signaler."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+          "lignes": "77-83",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "L'arrondi setScale(2, HALF_UP) de la remise n'est couvert par aucun test avec un montant au demi-centime (par exemple 100,05 €)."
+        }
+      ],
+      "score_defauts": 1
+    },
+    {
+      "diff": "D",
+      "notes": {
+        "conformite": 4,
+        "justesse": 5,
+        "tests": 4,
+        "conception": 4,
+        "robustesse": 5
+      },
+      "justifications": {
+        "conformite": "L'annulation existait déjà ; le changement ajoute le statut SHIPPED et la règle demandée, mais aucun chemin de production n'appelle ship().",
+        "justesse": "Transitions correctes : annulation refusée si SHIPPED, ship() seulement depuis CONFIRMED, statut inchangé après refus.",
+        "tests": "Règle testée au domaine, plus 404 et double annulation en HTTP ; ship() depuis un autre statut que CONFIRMED n'est pas testé.",
+        "conception": "Règle dans l'agrégat, cohérente ; ship() n'est appelé que par les tests.",
+        "robustesse": "Erreur traduite en 422 par le handler existant."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+          "lignes": "60-65",
+          "gravite": "mineure",
+          "categorie": "conception",
+          "texte": "ship() n'est appelé par aucun service ni endpoint : en production aucune commande ne peut passer SHIPPED, donc la règle ajoutée lignes 71-73 ne se déclenche jamais."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+          "lignes": "37-55",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "Le refus de ship() pour une commande DRAFT ou CANCELLED n'est pas testé."
+        }
+      ],
+      "score_defauts": 2
+    },
+    {
+      "diff": "E",
+      "notes": {
+        "conformite": 4,
+        "justesse": 4,
+        "tests": 3,
+        "conception": 3,
+        "robustesse": 3
+      },
+      "justifications": {
+        "conformite": "POST /orders/export écrit orders.csv avec une ligne par commande ; la ligne d'en-tête et le chemin configurable sont des ajouts non demandés.",
+        "justesse": "Échappement RFC 4180 et protection contre l'injection de formule corrects, ordre stable ; le chemin relatif dépend du répertoire de lancement.",
+        "tests": "Test unitaire précis (échappement compris) ; le test HTTP ne vérifie ni le nombre ni le contenu, malgré son nom.",
+        "conception": "Des E/S fichier dans la couche application, et le contrôleur dépend directement de l'exporteur ; acceptable mais c'est une entorse de couche.",
+        "robustesse": "IOException non traduite (500 brut), écriture non atomique qui écrase le fichier en place, et chemin serveur renvoyé dans la réponse."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+          "lignes": "37-45",
+          "gravite": "mineure",
+          "categorie": "robustesse",
+          "texte": "Files.write tronque puis réécrit orders.csv en place : un échec en cours d'écriture ou deux exports concurrents laissent un fichier partiel ou mélangé (pas de fichier temporaire suivi d'un renommage)."
+        },
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java",
+          "lignes": "32-36",
+          "gravite": "mineure",
+          "categorie": "robustesse",
+          "texte": "L'IOException remonte du contrôleur sans être traduite par OrderExceptionHandler (500 générique), et la réponse expose le chemin du fichier sur le serveur."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+          "lignes": "51-56",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "exportAnswersWithTheFileAndTheCount ne vérifie que $.file : ni $.orders ni le contenu du fichier ne sont vérifiés."
+        },
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+          "lignes": "16-27",
+          "gravite": "style",
+          "categorie": "conception",
+          "texte": "Les E/S fichier vivent dans le package application au lieu d'un adaptateur d'infrastructure."
+        }
+      ],
+      "score_defauts": 3
+    },
+    {
+      "diff": "F",
+      "notes": {
+        "conformite": 5,
+        "justesse": 4,
+        "tests": 4,
+        "conception": 5,
+        "robustesse": 4
+      },
+      "justifications": {
+        "conformite": "Service Spring simulé qui garde les messages, branché sur la confirmation : exactement le ticket.",
+        "justesse": "Notification envoyée après un save réussi, donc rien n'est envoyé si la confirmation échoue ; aucun cas limite oublié dans le périmètre du ticket.",
+        "tests": "Oracle précis (un seul message, avec l'id et le client) ; l'absence de notification quand la confirmation échoue n'est pas testée.",
+        "conception": "Injection par constructeur, liste thread-safe, copie défensive : simple.",
+        "robustesse": "La liste grossit sans borne et le nom du client est journalisé en INFO."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+          "lignes": "15-24",
+          "gravite": "mineure",
+          "categorie": "robustesse",
+          "texte": "La liste CopyOnWriteArrayList garde tous les messages pendant toute la vie de l'application (croissance sans borne, avec copie complète à chaque ajout)."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java",
+          "lignes": "43-54",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "Aucun test ne vérifie qu'une confirmation refusée (commande vide ou déjà confirmée) n'envoie pas de notification."
+        }
+      ],
+      "score_defauts": 2
+    },
+    {
+      "diff": "G",
+      "notes": {
+        "conformite": 4,
+        "justesse": 5,
+        "tests": 4,
+        "conception": 5,
+        "robustesse": 5
+      },
+      "justifications": {
+        "conformite": "GET /orders/{id} et le 404 existaient déjà ; le changement ajoute seulement les tests sans dupliquer le code, ce qui est raisonnable mais n'est signalé nulle part.",
+        "justesse": "Rien de faux dans le diff : pas de code de production modifié.",
+        "tests": "Cas nominal (id et total) et cas 404 couverts ; le corps ProblemDetail du 404 n'est pas vérifié et le statut de création n'est pas vérifié.",
+        "conception": "Tests au bon endroit, dans le style existant.",
+        "robustesse": "Sans objet, rien de dégradé."
+      },
+      "defauts": [
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+          "lignes": "52-55",
+          "gravite": "style",
+          "categorie": "lisibilite",
+          "texte": "La variable location contient le corps JSON, pas un en-tête Location, et JsonPath est écrit avec son nom qualifié complet au lieu d'un import."
+        }
+      ],
+      "score_defauts": 0
+    },
+    {
+      "diff": "H",
+      "notes": {
+        "conformite": 5,
+        "justesse": 5,
+        "tests": 4,
+        "conception": 4,
+        "robustesse": 5
+      },
+      "justifications": {
+        "conformite": "Nouvelle classe de tests unitaires du total, rien d'autre.",
+        "justesse": "Oracles exacts et justes (vide, somme, SKU en double, ligne gratuite, décimales).",
+        "tests": "Bonne couverture ; quelques cas sont redondants (copie, après confirmation) et un oracle dépend de l'échelle du BigDecimal.",
+        "conception": "Redondance partielle avec OrderTest.totalIsTheExactSumOfTheLines.",
+        "robustesse": "Sans objet."
+      },
+      "defauts": [
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+          "lignes": "50-55",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "isEqualTo(new BigDecimal(\"0.30\")) dépend aussi de l'échelle : le test casserait sur 0.3 alors que le montant est juste, contrairement aux autres assertions en isEqualByComparingTo."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+          "lignes": "24-30",
+          "gravite": "style",
+          "categorie": "conception",
+          "texte": "theTotalSumsAllLines reprend presque mot pour mot le scénario de OrderTest.totalIsTheExactSumOfTheLines."
+        }
+      ],
+      "score_defauts": 1
+    },
+    {
+      "diff": "J",
+      "notes": {
+        "conformite": 4,
+        "justesse": 4,
+        "tests": 3,
+        "conception": 4,
+        "robustesse": 4
+      },
+      "justifications": {
+        "conformite": "Tâche nocturne et archivage à 30 jours livrés ; la « transaction » est remplacée par un verrou synchronized, choix documenté, et toutes les commandes sont archivées quel que soit leur statut.",
+        "justesse": "Le verrou partagé avec save empêche de faire revivre une commande archivée (un save ultérieur donne une ConcurrentOrderUpdateException) ; les commandes archivées deviennent introuvables (404) par l'API, même celles qui sont encore en cours.",
+        "tests": "31 et 29 jours testés ; la frontière à 30 jours pile, la tâche planifiée et l'atomicité ne sont pas testées.",
+        "conception": "Opération atomique dans le port, horloge injectée ; findArchivedById est ajouté au port du domaine mais n'est utilisé que par les tests.",
+        "robustesse": "synchronized sur save sérialise toutes les écritures ; pas de perte de données (copie dans l'archive avant de retirer)."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java",
+          "lignes": "51-57",
+          "gravite": "mineure",
+          "categorie": "justesse",
+          "texte": "archiveCreatedBefore archive aussi les commandes DRAFT ou CONFIRMED de plus de 30 jours, qui renvoient ensuite 404 sur GET /orders/{id} puisqu'aucun chemin de production ne lit l'archive."
+        },
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java",
+          "lignes": "19-20",
+          "gravite": "mineure",
+          "categorie": "conception",
+          "texte": "findArchivedById est ajouté au port du domaine mais n'est appelé que par OrderServiceTest."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java",
+          "lignes": "51-67",
+          "gravite": "mineure",
+          "categorie": "tests",
+          "texte": "La frontière à 30 jours pile (isBefore strict) n'est pas testée, et ni OrderArchiveJob ni l'atomicité vis-à-vis de save ne le sont."
+        }
+      ],
+      "score_defauts": 3
+    },
+    {
+      "diff": "K",
+      "notes": {
+        "conformite": 4,
+        "justesse": 3,
+        "tests": 3,
+        "conception": 5,
+        "robustesse": 5
+      },
+      "justifications": {
+        "conformite": "Date de création + 3 jours au format jj/mm/aaaa dans la réponse ; le fuseau UTC est un choix posé (documenté) que le ticket ne fixait pas.",
+        "justesse": "Le jour calendaire est pris en UTC : pour une boutique française, une commande passée entre minuit et 1 h ou 2 h (heure de Paris) a une date de livraison décalée d'un jour.",
+        "tests": "Le calcul est bien testé au domaine (fin de mois comprise), mais le test HTTP ne vérifie que le motif \\d{2}/\\d{2}/\\d{4} : remplacer le format par MM/dd/yyyy laisse toute la suite verte (vérifié).",
+        "conception": "Calcul dans le domaine, formatage dans la couche web : bonne séparation.",
+        "robustesse": "Rien à signaler."
+      },
+      "defauts": [
+        {
+          "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+          "lignes": "85-88",
+          "gravite": "majeure",
+          "categorie": "justesse",
+          "texte": "estimatedDeliveryDate tronque createdAt au jour UTC : une commande créée le 29/04 à 23h30Z (30/04 à 01h30 à Paris) reçoit 02/05 au lieu de 03/05 pour un client en France."
+        },
+        {
+          "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+          "lignes": "32-34",
+          "gravite": "majeure",
+          "categorie": "tests",
+          "texte": "L'oracle matchesPattern(\"\\\\d{2}/\\\\d{2}/\\\\d{4}\") reste vert si le format passe à MM/dd/yyyy (mutation essayée : suite verte), donc rien ne protège le format jj/mm/aaaa demandé."
+        }
+      ],
+      "score_defauts": 6
+    }
+  ]
+}

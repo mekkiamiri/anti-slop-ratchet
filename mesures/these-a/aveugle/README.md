@@ -3,9 +3,17 @@
 Question : quand les 11 règles ne sonnent pas, est-ce parce que le code de l'agent est bon, ou parce
 que les règles ne regardent pas là où il se trompe vraiment ?
 
-**En une phrase : sur 38 remarques qu'un relecteur senior ferait sur 10 diffs de l'agent, le harnais
-(les 11 règles + le hook) en voit 0 et PMD/CPD/SpotBugs 0 aussi. Sur 20 défauts réalistes injectés, les
-règles en attrapent 0, les outils 4 et les tests existants 3 : 13 passent sans que rien ne bouge.**
+**En une phrase : sur 20 défauts réalistes injectés, les règles (les 11 règles + le hook) en attrapent 0,
+les outils 4 et les tests existants 3 : 13 passent sans que rien ne bouge. Et sur les 10 diffs relus par
+deux relecteurs indépendants (un agent de revue et un juge à l'aveugle, [../revue-croisee/](../revue-croisee/)),
+le harnais ne voit aucun des 34 défauts trouvés.**
+
+> **Mise à jour du 28/11/2026.** La « revue simulée » de la section 3 (38 remarques écrites par un seul
+> agent jouant le relecteur, 0 vue) n'est plus la preuve principale : elle est remplacée par une revue
+> croisée sur les mêmes 10 diffs, avec un vrai agent de revue et un juge à l'aveugle (grille écrite avant,
+> diffs anonymisés), croisée mécaniquement avec les règles, PMD/SpotBugs et les tests :
+> [../revue-croisee/README.md](../revue-croisee/README.md). Les chiffres de la revue simulée restent ci-dessous
+> comme historique.
 
 Le code de l'agent est bon *au sens des règles* (0 violation sur 50 passages, comme le 22/11). Il n'est
 pas sans défaut : ses défauts sont ailleurs (contrats d'API qui changent de sens, cas limites, tests à
@@ -62,7 +70,7 @@ Heuristiques simples et explicites (constantes `MOTIF_*` d'analyser.py) :
 - **cas limite** (sur le nom et le corps du test, insensible à la casse) : *null/vide* (`null`, `empty`, `vide`, `blank`, `absent`, `missing`, `isEmpty`…), *erreur* (`exception`, `throw`, `invalid`, `not found`, `404`, `isBadRequest`, `déjà`…), *frontière* (`exactly`, `exactement`, `limite`, `seuil`, `boundary`, `negative`…) ;
 - **code mort** : méthode ajoutée dans `src/main`, hors méthodes appelées par le framework (`@Override`, `@*Mapping`, `@Scheduled`, `@Bean`…), dont le nom n'est appelé nulle part ailleurs (« jamais appelée ») ou seulement depuis `src/test` (« seulement par les tests ») ; type ajouté jamais référencé hors de son fichier (types Spring exclus).
 
-### 3. Revue simulée ([revue.json](revue.json))
+### 3. Revue simulée ([revue.json](revue.json)) : historique, remplacée par la [revue croisée](../revue-croisee/README.md)
 
 10 copies, une par tâche, choisies **avant** de les lire : passage 1 de Sonnet 5.5, condition A pour
 les tâches impaires, condition C pour les paires. Pour chacune, la liste des remarques qu'un relecteur
@@ -138,7 +146,7 @@ Ce que disent les outils, tels quels :
 - Les avertissements nouveaux sont rares et presque tous sans intérêt pour un relecteur : `GuardLogStatement` (×4, sur des logs SLF4J déjà paramétrés), `NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE` (×4, `Path.getParent()` qui peut être null en théorie), `THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION` (×4, `throws Exception` sur des méthodes de test), `MethodNamingConventions` (×1, un nom de test avec un tiret bas).
 - Aucun test sans assertion, couverture des lignes ajoutées > 92 % : les métriques classiques de qualité des tests sont **toutes au vert**. La revue ci-dessous montre pourtant des oracles faibles : les métriques ne les voient pas non plus.
 
-### Revue simulée : la couverture du harnais
+### Historique : revue simulée (remplacée le 28/11/2026 par la [revue croisée](../revue-croisee/README.md))
 
 38 remarques sur 10 diffs ([revue.json](revue.json)).
 
@@ -218,11 +226,11 @@ Ce que disent les outils, tels quels :
 
 ## Limites
 
-- **Revue simulée, pas humaine.** Les 38 remarques ont été écrites par l'agent de code (Opus 5.5) en
-  jouant le relecteur senior, une seule fois, sans second relecteur pour mesurer l'accord. Chaque
-  remarque cite son fichier et sa ligne pour pouvoir être contestée ; le classement « vue par » est,
-  lui, mécanique (une violation ou un avertissement tombe-t-il sur ce code ?). Le chiffre 0 % du
-  harnais ne dépend pas du relecteur : aucune règle n'a sonné sur aucune copie.
+- **Revue simulée, pas humaine (historique).** Les 38 remarques ont été écrites par l'agent de code (Opus 5.5) en
+  jouant le relecteur senior, une seule fois, sans second relecteur. C'est pourquoi elles sont remplacées
+  par la revue croisée (deux relecteurs indépendants, juge à l'aveugle, grille écrite avant) : sur les
+  mêmes 10 diffs, 34 défauts uniques, 18 trouvés par les deux, 0 vu par le harnais. Les relecteurs
+  restent des agents, pas des humains.
 - **Défauts choisis par le mesureur.** Les 20 défauts sont « réalistes de 2026 » selon notre jugement ;
   un autre jeu donnerait d'autres taux pour les outils et les tests. Le 0 % des règles, lui, tient
   pour tout défaut qui n'est pas une des 11 formes visées.

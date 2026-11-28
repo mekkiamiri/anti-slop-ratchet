@@ -1,0 +1,701 @@
+{
+ "constats_agent": 31,
+ "constats_juge": 21,
+ "defauts_uniques": 34,
+ "dont_style": 4,
+ "trouves_par_les_deux": 18,
+ "majeurs_uniques": 6,
+ "temoins_mesures": 34,
+ "vus_par_regles": 0,
+ "vus_par_outils": 0,
+ "vus_par_tests": 0,
+ "vus_par_harnais": 0,
+ "deja_dans_l_ancienne_revue": 30,
+ "recouvrements_outil_a_juger": [
+  {
+   "defaut": "agent#9",
+   "texte": "export() réécrit orders.csv sur place avec Files.write (tronque puis écrit), sans verrou ni fichier temporaire suivi d'u",
+   "outil": "pmd",
+   "regle": "GuardLogStatement",
+   "ligne": 43
+  },
+  {
+   "defaut": "juge#E0",
+   "texte": "Files.write tronque puis réécrit orders.csv en place : un échec en cours d'écriture ou deux exports concurrents laissent",
+   "outil": "pmd",
+   "regle": "GuardLogStatement",
+   "ligne": 43
+  },
+  {
+   "defaut": "agent#10",
+   "texte": "Files.write(Path, Iterable, Charset) termine chaque ligne par System.lineSeparator() (LF sous Linux), alors que la Javad",
+   "outil": "pmd",
+   "regle": "GuardLogStatement",
+   "ligne": 43
+  },
+  {
+   "defaut": "agent#14",
+   "texte": "L'écriture du fichier se fait directement dans la couche application, alors que le projet isole les détails d'infrastruc",
+   "outil": "pmd",
+   "regle": "GuardLogStatement",
+   "ligne": 43
+  },
+  {
+   "defaut": "agent#25",
+   "texte": "Le ticket demande l'archivage dans une transaction, mais archiveOldOrders n'a aucune frontière transactionnelle : l'atom",
+   "outil": "pmd",
+   "regle": "GuardLogStatement",
+   "ligne": 61
+  }
+ ],
+ "defauts": [
+  {
+   "copie": "sonnet-A/T07-A-1",
+   "diff": "A",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] orderCount vaut all.size() et compte donc les commandes DRAFT et CANCELLED, alors que totalRevenue ne somme que les CONFIRMED : une commande annulée augmente le nombre de commandes sans changer le chiffre d'affaires, et les deux chiffres ne portent pas sur le même ensemble.",
+    "[juge] Le chiffre d'affaires ne garde que les commandes CONFIRMED (ligne 65) alors que le ticket demande le chiffre d'affaires total, et orderCount compte, lui, tous les statuts."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T07-A-1",
+   "diff": "A",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/StatsControllerTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Le chiffre d'affaires de départ, qui dépend des autres tests du contexte Spring partagé, est converti en double puis comparé strictement à revenue + 3.0 : comparer un montant en virgule flottante peut échouer avec des montants comme 0,10.",
+    "[juge] Le seul test compare des doubles (revenue + 3.0) en s'appuyant sur l'état partagé du contexte Spring ; ni le cas sans commande ni les commandes CANCELLED ne sont testés."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T07-A-1",
+   "diff": "A",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/StatsControllerTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Le test ne crée aucune commande annulée, donc l'exclusion des commandes CANCELLED du chiffre d'affaires n'est pas testée, et la seconde création (ligne 38) n'a aucune assertion de statut."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T09-A-1",
+   "diff": "B",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] total() inclut désormais les frais de port alors qu'OrderResponse n'expose toujours que total : la même commande passe de 3.00 à 7.90 dans l'API sans que le client puisse afficher le sous-total ni les frais.",
+    "[juge] shippingFee() renvoie 4,90 quand le sous-total vaut 0, donc une commande vide ou annulée affiche total = 4,90 dans OrderResponse."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T09-A-1",
+   "diff": "B",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] shippingFee() ne dépend que du sous-total : une commande sans ligne ou annulée affiche des frais de 4.90 dans son total, et aucun test ne fixe ce cas."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T01-A-1",
+   "diff": "C",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] La remise est arrondie à 2 décimales mais pas le sous-total : avec des prix unitaires à 3 décimales (acceptés par OrderRequest, sans @Digits), un sous-total de 100.005 donne une remise de 10.00 et un total de 90.005.",
+    "[juge] L'arrondi setScale(2, HALF_UP) de la remise n'est couvert par aucun test avec un montant au demi-centime (par exemple 100,05 €)."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T01-A-1",
+   "diff": "C",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Les tests de remise n'utilisent que 120.00 et 100.00 : aucun cas ne fait intervenir l'arrondi HALF_UP (100.05 donne 10.01) ni le seuil juste au-dessus de 100 (100.01)."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T05-A-1",
+   "diff": "D",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] ship() n'est appelé par aucun service ni endpoint : en production aucune commande ne peut atteindre SHIPPED, donc la garde ajoutée dans cancel() (lignes 71-73) ne s'applique jamais et n'est pas testable en HTTP.",
+    "[juge] ship() n'est appelé par aucun service ni endpoint : en production aucune commande ne peut passer SHIPPED, donc la règle ajoutée lignes 71-73 ne se déclenche jamais."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T05-A-1",
+   "diff": "D",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderStatus.java",
+   "gravite_max": "style",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] SHIPPED est inséré avant CANCELLED, ce qui décale l'ordinal de CANCELLED, et apparaît comme nouvelle valeur du champ status de l'API sans être documenté."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": false,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] export() réécrit orders.csv sur place avec Files.write (tronque puis écrit), sans verrou ni fichier temporaire suivi d'un déplacement atomique : deux POST /orders/export simultanés entrelacent leurs écritures, et un lecteur voit un fichier partiel pendant l'export.",
+    "[juge] Files.write tronque puis réécrit orders.csv en place : un échec en cours d'écriture ou deux exports concurrents laissent un fichier partiel ou mélangé (pas de fichier temporaire suivi d'un renommage)."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Files.write(Path, Iterable, Charset) termine chaque ligne par System.lineSeparator() (LF sous Linux), alors que la Javadoc ligne 57 annonce RFC 4180, qui impose CRLF."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] La réponse de POST /orders/export renvoie exporter.path().toString() à un appelant non authentifié, ce qui expose le chemin du fichier sur le serveur quand orders.export.path est absolu.",
+    "[juge] L'IOException remonte du contrôleur sans être traduite par OrderExceptionHandler (500 générique), et la réponse expose le chemin du fichier sur le serveur."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderController.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] L'IOException d'export remonte sans handler dans OrderExceptionHandler : une erreur disque produit une réponse 500 générique au lieu du ProblemDetail renvoyé par les autres erreurs de l'API."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Le test exportAnswersWithTheFileAndTheCount n'affirme que $.file : ni $.orders ni le contenu du fichier écrit ne sont vérifiés, malgré le nom du test.",
+    "[juge] exportAnswersWithTheFileAndTheCount ne vérifie que $.file : ni $.orders ni le contenu du fichier ne sont vérifiés."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T04-C-1",
+   "diff": "E",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderCsvExporter.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] L'écriture du fichier se fait directement dans la couche application, alors que le projet isole les détails d'infrastructure derrière des ports du domaine avec un adaptateur dans le paquet infrastructure.",
+    "[juge] Les E/S fichier vivent dans le package application au lieu d'un adaptateur d'infrastructure."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T06-C-1",
+   "diff": "F",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Chaque confirmation ajoute un message à une CopyOnWriteArrayList jamais purgée, portée par un singleton et recopiée en entier à chaque ajout : la mémoire et le coût de send croissent sans limite pendant la vie de l'application.",
+    "[juge] La liste CopyOnWriteArrayList garde tous les messages pendant toute la vie de l'application (croissance sans borne, avec copie complète à chaque ajout)."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T06-C-1",
+   "diff": "F",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/NotificationService.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Le message, construit en OrderService.java ligne 49 avec saved.customer(), est journalisé en INFO : le nom du client est écrit dans les journaux à chaque notification."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T06-C-1",
+   "diff": "F",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Seul le cas nominal est testé : aucun test ne vérifie qu'aucune notification n'est envoyée quand confirm échoue (commande vide, ConcurrentOrderUpdateException), donc un send déplacé avant save ne ferait échouer aucun test.",
+    "[juge] Aucun test ne vérifie qu'une confirmation refusée (commande vide ou déjà confirmée) n'envoie pas de notification."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T02-C-1",
+   "diff": "G",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] gettingAnUnknownOrderIsA404 n'affirme que le statut 404 : avec @GetMapping(\"/{id}\") retiré du contrôleur, le test reste vert (vérifié par mutation), parce qu'une route absente répond aussi 404."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T02-C-1",
+   "diff": "G",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+   "gravite_max": "style",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] La variable location contient le corps JSON de la réponse et non l'en-tête Location, et la création n'est pas vérifiée (status().isCreated()) avant la lecture de $.id.",
+    "[juge] La variable location contient le corps JSON, pas un en-tête Location, et JsonPath est écrit avec son nom qualifié complet au lieu d'un import."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T10-C-1",
+   "diff": "H",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] isEqualTo(new BigDecimal(\"0.30\")) dépend de l'échelle du BigDecimal (0.3 ou 0.300 échoueraient alors que le total est juste), alors que les autres tests de la classe utilisent isEqualByComparingTo.",
+    "[juge] isEqualTo(new BigDecimal(\"0.30\")) dépend aussi de l'échelle : le test casserait sur 0.3 alors que le montant est juste, contrairement aux autres assertions en isEqualByComparingTo."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T10-C-1",
+   "diff": "H",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+   "gravite_max": "style",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] theTotalSumsAllLines teste le même comportement qu'OrderTest.totalIsTheExactSumOfTheLines (somme de deux lignes) dans une seconde classe.",
+    "[juge] theTotalSumsAllLines reprend presque mot pour mot le scénario de OrderTest.totalIsTheExactSumOfTheLines."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T10-C-1",
+   "diff": "H",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTotalTest.java",
+   "gravite_max": "style",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] aCopyKeepsTheSameTotal compare copyAtVersion(1).total() à order.total() au lieu d'une valeur attendue fixe (8.00)."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "diff": "J",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] archiveCreatedBefore retire les commandes de la map orders : GET /orders/{id}, confirm et cancel répondent ensuite 404 « Commande introuvable » pour toute commande de plus de 30 jours, et findArchivedById n'est appelé par aucun code de production.",
+    "[juge] archiveCreatedBefore archive aussi les commandes DRAFT ou CONFIRMED de plus de 30 jours, qui renvoient ensuite 404 sur GET /orders/{id} puisqu'aucun chemin de production ne lit l'archive."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": false,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "diff": "J",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/infrastructure/InMemoryOrderRepository.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Une confirmation qui a lu une commande juste avant son archivage appelle save sur un identifiant absent, ce qui lève ConcurrentOrderUpdateException (« version enregistrée 0 ») et renvoie 409 « modifiée entre-temps » au lieu de signaler l'archivage."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": false,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "diff": "J",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/application/OrderService.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Le ticket demande l'archivage dans une transaction, mais archiveOldOrders n'a aucune frontière transactionnelle : l'atomicité repose seulement sur le synchronized de l'adaptateur en mémoire, ce qu'un adaptateur JPA ne pourrait pas garantir."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "diff": "J",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/application/OrderServiceTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Le test d'archivage utilise 31 et 29 jours sans cas à exactement 30 jours (isBefore strict), et rien ne vérifie que OrderArchiveJob est planifié ni qu'il appelle le service.",
+    "[juge] La frontière à 30 jours pile (isBefore strict) n'est pas testée, et ni OrderArchiveJob ni l'atomicité vis-à-vis de save ne le sont."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T03-A-1",
+   "diff": "K",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] La date de livraison est calculée avec createdAt.atZone(ZoneOffset.UTC) : une commande créée à 23h30Z le 29/04 (le 30/04 à 01h30 heure de Paris) reçoit 02/05 au lieu de 03/05, et c'est le cas de toute commande passée entre minuit et 2h heure de Paris en été.",
+    "[juge] estimatedDeliveryDate tronque createdAt au jour UTC : une commande créée le 29/04 à 23h30Z (30/04 à 01h30 à Paris) reçoit 02/05 au lieu de 03/05 pour un client en France."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T03-A-1",
+   "diff": "K",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/web/OrderControllerTest.java",
+   "gravite_max": "majeure",
+   "sources": [
+    "agent",
+    "juge"
+   ],
+   "textes": [
+    "[agent] Le format jj/mm/aaaa exigé par le ticket n'est vérifié que par le motif \\d{2}/\\d{2}/\\d{4} : avec MM/dd/yyyy dans OrderResponse, les 20 tests du projet restent verts (vérifié par mutation).",
+    "[juge] L'oracle matchesPattern(\"\\\\d{2}/\\\\d{2}/\\\\d{4}\") reste vert si le format passe à MM/dd/yyyy (mutation essayée : suite verte), donc rien ne protège le format jj/mm/aaaa demandé."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T03-A-1",
+   "diff": "K",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] Le cas 2027-04-29T23:30:00Z attendu au 02/05 est précisément celui où UTC et Europe/Paris divergent : le test verrouille l'interprétation UTC au lieu de la révéler."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T03-A-1",
+   "diff": "K",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/Order.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "agent"
+   ],
+   "textes": [
+    "[agent] ZoneOffset.UTC est codé en dur dans le domaine alors que l'application centralise le temps dans le bean Clock de ClockConfiguration : changer le fuseau de l'horloge ne changerait pas la date de livraison."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T09-A-1",
+   "diff": "B",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/web/OrderResponse.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "juge"
+   ],
+   "textes": [
+    "[juge] Le champ total inclut désormais les frais de port sans que subtotal ni shippingFee soient exposés : le sens du contrat change en silence pour les clients de l'API."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": false,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-A/T05-A-1",
+   "diff": "D",
+   "fichier": "src/test/java/io/github/mekkiamiri/ratchet/order/domain/OrderTest.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "juge"
+   ],
+   "textes": [
+    "[juge] Le refus de ship() pour une commande DRAFT ou CANCELLED n'est pas testé."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  },
+  {
+   "copie": "sonnet-C/T08-C-1",
+   "diff": "J",
+   "fichier": "src/main/java/io/github/mekkiamiri/ratchet/order/domain/OrderRepository.java",
+   "gravite_max": "mineure",
+   "sources": [
+    "juge"
+   ],
+   "textes": [
+    "[juge] findArchivedById est ajouté au port du domaine mais n'est appelé que par OrderServiceTest."
+   ],
+   "vu_par_regles": false,
+   "vu_par_outils": [],
+   "vu_par_tests": false,
+   "temoin_mesure": true,
+   "dans_l_ancienne_revue": true,
+   "vu_par_harnais": false
+  }
+ ]
+}
